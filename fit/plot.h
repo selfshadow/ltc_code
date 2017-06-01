@@ -199,6 +199,7 @@ void make_spherical_plots(const Brdf& brdf, const mat3 * tab, const int N)
 
 		// filename LTC
 		std::stringstream filename_ltc;
+		filename_ltc << "plots/";
 		filename_ltc << "alpha_";
 		filename_ltc << std::setfill('0') << std::setw(3) << (int)(100.0f*alpha_tab[a]) ;
 		filename_ltc << "_theta_";
@@ -206,6 +207,7 @@ void make_spherical_plots(const Brdf& brdf, const mat3 * tab, const int N)
 
 		// filename BRFDF
 		std::stringstream filename_brdf;
+		filename_brdf << "plots/";
 		filename_brdf << "alpha_";
 		filename_brdf << std::setfill('0') << std::setw(3) << (int)(100.0f*alpha_tab[a]) ;
 		filename_brdf << "_theta_";
