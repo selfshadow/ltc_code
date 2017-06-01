@@ -11,7 +11,7 @@ using namespace glm;
 #include "brdf.h"
 #include "brdf_ggx.h"
 #include "brdf_beckmann.h"
-#include "Brdf_disneyDiffuse.h"
+#include "brdf_disneyDiffuse.h"
 
 #include "nelder_mead.h"
 

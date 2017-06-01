@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 using namespace glm;
 
-#include "Cimg.h"
+#include "CImg.h"
 using namespace cimg_library;
 
 CImg<float> colorMap(33,1,1,3);
