@@ -7,8 +7,8 @@ solution "fitLTC"
       files { "**.h", "**.cpp", "**.c" }
 
       includedirs {
-         "../external",
-         "../external/CImg"
+         "../external/CImg",
+         "../external/glm"
       }
 
       defines { 
