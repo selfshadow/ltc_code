@@ -21,7 +21,7 @@ public:
 		float NdotL = L.z;
 		float LdotH = dot(L, normalize(V+L));
 		float perceptualRoughness = sqrtf(alpha);
-		float fd90 = 0.5 + 2 * LdotH * LdotH * perceptualRoughness;
+		float fd90 = 0.5f + 2 * LdotH * LdotH * perceptualRoughness;
 		float lightScatter    = (1 + (fd90 - 1) * powf(1 - NdotL, 5.0f));
 		float viewScatter    = (1 + (fd90 - 1) * powf(1 - NdotV, 5.0f));
 		return lightScatter * viewScatter * L.z / 3.14159f;
