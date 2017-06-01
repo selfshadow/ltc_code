@@ -35,6 +35,13 @@
 Makefile
 *.make
 
+# Visual Studio
+*.sln
+*.vcxproj*
+*.VC.db
+.vs
+
 # Build
-out
 bin
+obj
+out
