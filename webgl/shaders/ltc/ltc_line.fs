@@ -22,8 +22,8 @@ uniform float R;
 uniform bool analytic;
 uniform bool endCaps;
 
-uniform sampler2D ltc_mat;
-uniform sampler2D ltc_mag;
+uniform sampler2D ltc_1;
+uniform sampler2D ltc_2;
 
 uniform float roty;
 uniform float rotz;
@@ -483,15 +483,17 @@ void main()
             vec2 uv = vec2(roughness, theta/(0.5*PI));
             uv = uv*LUT_SCALE + LUT_BIAS;
 
-            vec4 t = texture2D(ltc_mat, uv);
+            vec4 t1 = texture2D(ltc_1, uv);
+            vec4 t2 = texture2D(ltc_2, uv);
+
             Minv = mat3(
-                vec3(  1,   0, t.y),
-                vec3(  0, t.z,   0),
-                vec3(t.w,   0, t.x)
+                vec3(t1.x,  0, t1.y),
+                vec3(  0, t1.z,   0),
+                vec3(t1.w,  0, t2.x)
             );
 
             vec3 spec = LTC_Evaluate(N, V, pos);
-            spec *= texture2D(ltc_mag, uv).w;
+            spec *= t2.y;
 
             Minv = mat3(1);
             vec3 diff = LTC_Evaluate(N, V, pos);

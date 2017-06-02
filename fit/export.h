@@ -101,76 +101,35 @@ void writeTabMatlab(mat3 * tab, vec2 * tabAmplitude, int N)
 // export data to DDS
 #include "dds.h"
 
-void writeDDS(mat3 * tab, vec2 * tabAmplitude, int N)
+void writeDDS(vec4* data1, vec2* data2, int N)
 {
-	float * data = new float[N*N*4];
-
-	int n = 0;
-	for (int i = 0; i < N*N; ++i, n += 4)
-	{
-		const mat3& m = tab[i];
-
-		float a = m[0][0];
-		float b = m[0][2];
-		float c = m[1][1];
-		float d = m[2][0];
-
-		// rescaled inverse of m:
-		// a 0 b   inverse   1      0      -b
-		// 0 c 0     ==>     0 (a - b*d)/c  0
-		// d 0 1            -d      0       a
-
-		// store the variable terms
-		data[n + 0] =  a;
-		data[n + 1] = -b;
-		data[n + 2] = (a - b*d) / c;
-		data[n + 3] = -d;
-	}
-
-	SaveDDS("results/ltc_mat.dds", DDS_FORMAT_R32G32B32A32_FLOAT, sizeof(float)*4, N, N, data);
-	SaveDDS("results/ltc_amp.dds", DDS_FORMAT_R32G32_FLOAT,       sizeof(float)*2, N, N, tabAmplitude);
-
-	delete [] data;
+	SaveDDS("results/ltc_1.dds", DDS_FORMAT_R32G32B32A32_FLOAT, sizeof(float)*4, N, N, data1);
+	SaveDDS("results/ltc_2.dds", DDS_FORMAT_R32G32_FLOAT,       sizeof(float)*2, N, N, data2);
 }
 
 // export data to Javascript
-void writeJS(mat3 * tab, vec2 * tabAmplitude, int N)
+void writeJS(vec4* data1, vec2* data2, int N)
 {
 	ofstream file("results/ltc_tables.js");
 
-	file << "var g_ltc_mat = [" << endl;
+	file << "var g_ltc_1 = [" << endl;
 
-	int n = 0;
-	for (int i = 0; i < N*N; ++i, n += 4)
+	for (int i = 0; i < N*N; ++i)
 	{
-		const mat3& m = tab[i];
-
-		float a = m[0][0];
-		float b = m[0][2];
-		float c = m[1][1];
-		float d = m[2][0];
-
-		// rescaled inverse of m:
-		// a 0 b   inverse   1      0      -b
-		// 0 c 0     ==>     0 (a - b*d)/c  0
-		// d 0 1            -d      0       a
-
 		// store the variable terms
-		file <<  a;
-		file << ", ";
-		file << -b;
-		file << ", ";
-		file << (a - b*d) / c;
-		file << ", ";
-		file << -d;
-		file << ", " << endl;
+		file << data1[i].x << ", ";
+		file << data1[i].y << ", ";
+		file << data1[i].z << ", ";
+		file << data1[i].w << ", " << endl;
 	}
 	file << "];" << endl;
 
-	file << "var g_ltc_mag = [";
-	for (int i = 0; i < N*N; ++i, n += 4)
+	file << "var g_ltc_2 = [";
+	for (int i = 0; i < N*N; ++i)
 	{
-		file << tabAmplitude[i].x << ", " << endl;
+		file << data2[i].x << ", ";
+		file << data2[i].y << ", ";
+		file << "0, 0, "   << endl;
 	}
 	file << "];" << endl;
 

@@ -256,12 +256,11 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 		tabAmplitude[a + t*N][0] = ltc.amplitude;
 		tabAmplitude[a + t*N][1] = 0;
 
-		// kill useless coefs in matrix and normalize
+		// kill useless coefs in matrix
 		tab[a+t*N][0][1] = 0;
 		tab[a+t*N][1][0] = 0;
 		tab[a+t*N][2][1] = 0;
 		tab[a+t*N][1][2] = 0;
-		tab[a+t*N] = 1.0f / tab[a+t*N][2][2] * tab[a+t*N];
 
 		cout << tab[a+t*N][0][0] << "\t " << tab[a+t*N][1][0] << "\t " << tab[a+t*N][2][0] << endl;
 		cout << tab[a+t*N][0][1] << "\t " << tab[a+t*N][1][1] << "\t " << tab[a+t*N][2][1] << endl;
@@ -270,6 +269,40 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 	}
 }
 
+void packTab(
+	vec4* tex1, vec2* tex2,
+	const mat3* tab, const vec2* tabAmplitude, int N)
+{
+	for (int i = 0; i < N*N; ++i)
+	{
+		const mat3& m = tab[i];
+
+		float a = m[0][0];
+		float b = m[0][2];
+		float c = m[1][1];
+		float d = m[2][0];
+		float e = m[2][2];
+
+		// rescaled inverse of m:
+		// a 0 b   inverse  c*e     0     -b*c
+		// 0 c 0     ==>     0  a*e - b*d   0
+		// d 0 e           -c*d     0      a*c
+
+		float t0 =  c*e;
+		float t1 = -b*c;
+		float t2 =  a*e - b*d;
+		float t3 = -c*d;
+		float t4 =  a*c;
+
+		// store the variable terms
+		tex1[i].x = t0;
+		tex1[i].y = t1;
+		tex1[i].z = t2;
+		tex1[i].w = t3;
+		tex2[i].x = t4;
+		tex2[i].y = tabAmplitude[i].x;
+	}
+}
 
 int main(int argc, char* argv[])
 {
@@ -279,24 +312,31 @@ int main(int argc, char* argv[])
 	//BrdfDisneyDiffuse brdf;
 	
 	// allocate data
-	mat3 * tab = new mat3[N*N];
-	vec2 * tabAmplitude = new vec2[N*N];
-	
+	mat3* tab = new mat3[N*N];
+	vec2* tabAmplitude = new vec2[N*N];
+
 	// fit
 	fitTab(tab, tabAmplitude, N, brdf);
+
+	// pack tables (texture representation)
+	vec4* tex1 = new vec4[N*N];
+	vec2* tex2 = new vec2[N*N];
+	packTab(tex1, tex2, tab, tabAmplitude, N);
 
 	// export to C, MATLAB and DDS
 	writeTabMatlab(tab, tabAmplitude, N);
 	writeTabC(tab, tabAmplitude, N);
-	writeDDS(tab, tabAmplitude, N);
-	writeJS(tab, tabAmplitude, N);
+	writeDDS(tex1, tex2, N);
+	writeJS(tex1, tex2, N);
 
 	// spherical plots
 	make_spherical_plots(brdf, tab, N);
 
 	// delete data
-	delete [] tab;
-	delete [] tabAmplitude;
+	delete[] tab;
+	delete[] tabAmplitude;
+	delete[] tex1;
+	delete[] tex2;
 
 	return 0;
 }

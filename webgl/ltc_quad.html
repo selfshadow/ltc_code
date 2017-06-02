@@ -184,8 +184,8 @@ var view       = new Matrix4x4();
 var projection = new Matrix4x4();
 var controller = null;
 
-var ltc_mat_texture = null;
-var ltc_mag_texture = null;
+var ltc_texture_1 = null;
+var ltc_texture_2 = null;
 
 var rttFramebuffer = null;
 var rttTexture = null;
@@ -319,16 +319,15 @@ function init() {
 		//console.log(event);
 		return false;
 	});
-	 
 
-	ltc_mat_texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, ltc_mat_texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_mat));
+	ltc_texture_1 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, ltc_texture_1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_1));
     SetClampedTextureState();
 
-	ltc_mag_texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, ltc_mag_texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, 64, 64, 0, gl.ALPHA, gl.FLOAT, new Float32Array(g_ltc_mag));
+	ltc_texture_2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, ltc_texture_2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_2));
     SetClampedTextureState();
 
 	// Fetch media and kick off the main program once everything has loaded
@@ -645,12 +644,12 @@ function draw() {
 	gl.uniform2f(location("resolution"), parameters.screenWidth, parameters.screenHeight);
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, ltc_mat_texture);
-    gl.uniform1i(gl.getUniformLocation(currentProgram, "ltc_mat"), 0);
+    gl.bindTexture(gl.TEXTURE_2D, ltc_texture_1);
+    gl.uniform1i(gl.getUniformLocation(currentProgram, "ltc_1"), 0);
 
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, ltc_mag_texture);
-    gl.uniform1i(gl.getUniformLocation(currentProgram, "ltc_mag"), 1);
+    gl.bindTexture(gl.TEXTURE_2D, ltc_texture_2);
+    gl.uniform1i(gl.getUniformLocation(currentProgram, "ltc_2"), 1);
 
     checkGLError();
 
