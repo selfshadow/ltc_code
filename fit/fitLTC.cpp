@@ -235,7 +235,7 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 		// otherwise use previous configuration as first guess
 		else
 		{
-			vec3 L = normalize(averageDir);
+			vec3 L = averageDir;
 			vec3 T1(L.z,0,-L.x);
 			vec3 T2(0,1,0);
 			ltc.X = T1;
