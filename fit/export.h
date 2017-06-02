@@ -110,7 +110,7 @@ void writeDDS(vec4* data1, vec2* data2, int N)
 // export data to Javascript
 void writeJS(vec4* data1, vec2* data2, int N)
 {
-	ofstream file("results/ltc_tables.js");
+	ofstream file("results/ltc.js");
 
 	file << "var g_ltc_1 = [" << endl;
 
