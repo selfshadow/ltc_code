@@ -177,7 +177,7 @@ void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const flo
 	FitLTC fitter(ltc, brdf, isotropic, V, alpha);
 
 	// Find best-fit LTC lobe (scale, alphax, alphay)
-	float error = NelderMead<4>(resultFit, startFit, epsilon, 1e-5f, 100, fitter);
+	float error = NelderMead<3>(resultFit, startFit, epsilon, 1e-5f, 100, fitter);
 
 	// Update LTC with best fitting values
 	fitter.update(resultFit);
