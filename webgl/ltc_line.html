@@ -640,7 +640,7 @@ function draw() {
 		if (type === gl.BOOL)       gl.uniform1i(loc, value);
 	}
 
-    gl.uniformMatrix4fv(location("view"), gl.FALSE, new Float32Array(view.elements));
+    gl.uniformMatrix4fv(location("view"), false, new Float32Array(view.elements));
 	gl.uniform1f(location("time"), parameters.time/1000);
 	gl.uniform2f(location("resolution"), parameters.screenWidth, parameters.screenHeight);
 
