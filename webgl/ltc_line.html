@@ -218,7 +218,7 @@ function SetClampedTextureState()
 
 function init() {
 	vertex_shader   = FetchFile("shaders/ltc/ltc.vs", false);
-	fragment_shader = FetchFile("shaders/ltc/ltc.fs", false);
+	fragment_shader = FetchFile("shaders/ltc/ltc_line.fs", false);
 
 	g_vshader = vertex_shader;
 	$("#editor").text(fragment_shader);
