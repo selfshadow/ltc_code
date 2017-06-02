@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+# Makefiles
+Makefile
+*.make
+
+# Visual Studio
+*.sln
+*.vcxproj*
+*.VC.db
+.vs
+
+# Build
+bin
+obj
+out
