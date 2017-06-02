@@ -133,4 +133,48 @@ void writeDDS(mat3 * tab, vec2 * tabAmplitude, int N)
 	delete [] data;
 }
 
+// export data to Javascript
+void writeJS(mat3 * tab, vec2 * tabAmplitude, int N)
+{
+	ofstream file("results/ltc_tables.js");
+
+	file << "var g_ltc_mat = [" << endl;
+
+	int n = 0;
+	for (int i = 0; i < N*N; ++i, n += 4)
+	{
+		const mat3& m = tab[i];
+
+		float a = m[0][0];
+		float b = m[0][2];
+		float c = m[1][1];
+		float d = m[2][0];
+
+		// rescaled inverse of m:
+		// a 0 b   inverse   1      0      -b
+		// 0 c 0     ==>     0 (a - b*d)/c  0
+		// d 0 1            -d      0       a
+
+		// store the variable terms
+		file <<  a;
+		file << ", ";
+		file << -b;
+		file << ", ";
+		file << (a - b*d) / c;
+		file << ", ";
+		file << -d;
+		file << ", " << endl;
+	}
+	file << "];" << endl;
+
+	file << "var g_ltc_mag = [";
+	for (int i = 0; i < N*N; ++i, n += 4)
+	{
+		file << tabAmplitude[i].x << ", " << endl;
+	}
+	file << "];" << endl;
+
+	file.close();
+}
+
 #endif

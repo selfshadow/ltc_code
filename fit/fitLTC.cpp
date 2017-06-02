@@ -293,6 +293,7 @@ int main(int argc, char* argv[])
 	writeTabMatlab(tab, tabAmplitude, N);
 	writeTabC(tab, tabAmplitude, N);
 	writeDDS(tab, tabAmplitude, N);
+	writeJS(tab, tabAmplitude, N);
 
 	// spherical plots
 	make_spherical_plots(brdf, tab, N);
