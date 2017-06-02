@@ -14,7 +14,7 @@ struct LTC {
 	float amplitude;
 
 	// parametric representation
-	float m11, m22, m13, m23;
+	float m11, m22, m13;
 	vec3 X, Y, Z;
 
 	// matrix representation
@@ -28,7 +28,6 @@ struct LTC {
 		m11 = 1;
 		m22 = 1;
 		m13 = 0;
-		m23 = 0;
 		X = vec3(1,0,0);
 		Y = vec3(0,1,0);
 		Z = vec3(0,0,1);
@@ -40,7 +39,7 @@ struct LTC {
 		M = mat3(X, Y, Z) *
 			mat3(m11, 0, 0,
 				0, m22, 0,
-				m13, m23, 1);
+				m13, 0, 1);
 		invM = inverse(M);
 		detM = abs(glm::determinant(M));
 	}

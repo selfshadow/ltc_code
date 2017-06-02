@@ -137,21 +137,18 @@ struct FitLTC
 		float m11 = std::max<float>(params[0], MIN_ALPHA);
 		float m22 = std::max<float>(params[1], MIN_ALPHA);
 		float m13 = params[2];
-		float m23 = params[3];
 
 		if(isotropic)
 		{
 			ltc.m11 = m11;
 			ltc.m22 = m11;
 			ltc.m13 = 0.0f;
-			ltc.m23 = 0.0f;
 		}
 		else
 		{
 			ltc.m11 = m11;
 			ltc.m22 = m22;
 			ltc.m13 = m13;
-			ltc.m23 = m23;
 		}
 		ltc.update();
 	}
@@ -174,8 +171,8 @@ struct FitLTC
 // refine first guess by exploring parameter space
 void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const float epsilon = 0.05f, const bool isotropic=false)
 {
-	float startFit[4] = { ltc.m11, ltc.m22, ltc.m13, ltc.m23 };
-	float resultFit[4];
+	float startFit[3] = { ltc.m11, ltc.m22, ltc.m13 };
+	float resultFit[3];
 
 	FitLTC fitter(ltc, brdf, isotropic, V, alpha);
 
@@ -231,7 +228,6 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 			}
 			
 			ltc.m13 = 0;
-			ltc.m23 = 0;
 			ltc.update();
 
 			isotropic = true;
