@@ -205,7 +205,7 @@ void make_spherical_plots(const Brdf& brdf, const mat3 * tab, const int N)
 		filename_ltc << "_theta_";
 		filename_ltc << std::setfill('0') << std::setw(2) << (int)theta_tab[t] << "_ltc.png"; 
 
-		// filename BRFDF
+		// filename BRDF
 		std::stringstream filename_brdf;
 		filename_brdf << "plots/";
 		filename_brdf << "alpha_";

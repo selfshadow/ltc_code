@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
 	// fit
 	fitTab(tab, tabAmplitude, N, brdf);
 
-	// export in C, matlab and DDS
+	// export to C, MATLAB and DDS
 	writeTabMatlab(tab, tabAmplitude, N);
 	writeTabC(tab, tabAmplitude, N);
 	writeDDS(tab, tabAmplitude, N);

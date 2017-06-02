@@ -1,7 +1,7 @@
 #ifndef _EXPORT_
 #define _EXPORT_
 
-// export data in C
+// export data to C
 void writeTabC(mat3 * tab, vec2 * tabAmplitude, int N)
 {
 	ofstream file("results/ltc.inc");
@@ -55,7 +55,7 @@ void writeTabC(mat3 * tab, vec2 * tabAmplitude, int N)
 	file.close();
 }
 
-// export data in matlab
+// export data to MATLAB
 void writeTabMatlab(mat3 * tab, vec2 * tabAmplitude, int N)
 {
 	ofstream file("results/ltc.mat");
@@ -98,7 +98,7 @@ void writeTabMatlab(mat3 * tab, vec2 * tabAmplitude, int N)
 	file.close();
 }
 
-// export data in dds
+// export data to DDS
 #include "dds.h"
 
 void writeDDS(mat3 * tab, vec2 * tabAmplitude, int N)
@@ -115,12 +115,12 @@ void writeDDS(mat3 * tab, vec2 * tabAmplitude, int N)
 		float c = m[1][1];
 		float d = m[2][0];
 
-		// Rescaled inverse of m:
+		// rescaled inverse of m:
 		// a 0 b   inverse   1      0      -b
 		// 0 c 0     ==>     0 (a - b*d)/c  0
 		// d 0 1            -d      0       a
 
-		// Store the variable terms
+		// store the variable terms
 		data[n + 0] =  a;
 		data[n + 1] = -b;
 		data[n + 2] = (a - b*d) / c;
