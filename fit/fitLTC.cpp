@@ -23,7 +23,7 @@ const int N = 64;
 // number of samples used to compute the error during fitting
 const int Nsample = 32;
 // minimal roughness (avoid singularities)
-const float MIN_ALPHA = 0.0001f;
+const float MIN_ALPHA = 0.00001f;
 
 
 // compute the norm (albedo) of the BRDF
@@ -134,8 +134,8 @@ struct FitLTC
 
 	void update(const float * params)
 	{
-		float m11 = std::max<float>(params[0], MIN_ALPHA);
-		float m22 = std::max<float>(params[1], MIN_ALPHA);
+		float m11 = std::max<float>(params[0], 1e-7f);
+		float m22 = std::max<float>(params[1], 1e-7f);
 		float m13 = params[2];
 
 		if(isotropic)
@@ -225,8 +225,8 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 			}
 			else // init with roughness of previous fit
 			{
-				ltc.m11 = std::max<float>(tab[a+1+t*N][0][0], MIN_ALPHA);
-				ltc.m22 = std::max<float>(tab[a+1+t*N][1][1], MIN_ALPHA);
+				ltc.m11 = tab[a+1+t*N][0][0];
+				ltc.m22 = tab[a+1+t*N][1][1];
 			}
 			
 			ltc.m13 = 0;
