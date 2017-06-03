@@ -189,11 +189,13 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 	LTC ltc;
 
 	// loop over theta and alpha
-	for(int a = N-1 ; a >= 0   ; --a)
-	for(int t =   0 ; t <= N-1 ; ++t)
+	for(int a = N-1 ; a >= 0 ; --a)
+	for(int t = N-1 ; t >= 0 ; --t)
 	{
-		float theta = std::min<float>(1.57f, t / float(N-1) * 1.57079f);
-		const vec3 V = vec3(sinf(theta),0,cosf(theta));
+		// parameterised by cos(theta)
+		float ct = t / float(N-1);
+		float theta = std::min<float>(1.57f, acosf(ct));
+		const vec3 V = vec3(sinf(theta), 0, cosf(theta));
 
 		// alpha = roughness^2
 		float roughness = a / float(N-1);
@@ -210,7 +212,7 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 		// 1. first guess for the fit
 		// init the hemisphere in which the distribution is fitted
 		// if theta == 0 the lobe is rotationally symmetric and aligned with Z = (0 0 1)
-		if(t == 0)
+		if(t == N-1)
 		{
 			ltc.X = vec3(1,0,0);
 			ltc.Y = vec3(0,1,0);
