@@ -149,13 +149,23 @@ mat3 transpose(mat3 v)
 // Linearly Transformed Cosines
 ///////////////////////////////
 
+vec3 IntegrateEdgeVec(vec3 v1, vec3 v2)
+{
+    float x = dot(v1, v2);
+    float y = abs(x);
+
+    float a = 0.8543985 + (0.4965155 + 0.0145206*y)*y;
+    float b = 3.4175940 + (4.1616724 + y)*y;
+    float v = a / b;
+
+    float theta_sintheta = (x > 0.0) ? v : 0.5*inversesqrt(1.0 - x*x) - v;
+
+    return cross(v1, v2)*theta_sintheta;
+}
+
 float IntegrateEdge(vec3 v1, vec3 v2)
 {
-    float cosTheta = dot(v1, v2);
-    float theta = acos(cosTheta);    
-    float res = cross(v1, v2).z * ((theta > 0.001) ? theta/sin(theta) : 1.0);
-
-    return res;
+    return IntegrateEdgeVec(v1, v2).z;
 }
 
 void ClipQuadToHorizon(inout vec3 L[5], out int n)
@@ -408,8 +418,7 @@ void main()
         
         vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided); 
         
-        col  = lcol*(scol*spec + dcol*diff);
-        col /= 2.0*pi;
+        col = lcol*(scol*spec + dcol*diff);
     }
 
     float distToRect;
