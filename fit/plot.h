@@ -177,9 +177,9 @@ void make_spherical_plots(const Brdf& brdf, const mat3 * tab, const int N)
 		const float theta = theta_tab[t] * 3.14159f / 180.0f;
 		const vec3 V(sinf(theta), 0.0f, cosf(theta));
 		
-		// fetch texture with parameterization = [(sqrtf(alpha), theta]
+		// fetch texture with parameterization = [(sqrtf(alpha), cosf(theta)]
 		float x = sqrtf(alpha)*((float)(LTC_matrices.width())-1.0f);
-		float y = (theta/1.57079f)*((float)(LTC_matrices.height())-1.0f);
+		float y = V.z*((float)(LTC_matrices.height())-1.0f);
 		mat3 M = mat3(			
 					LTC_matrices.linear_atXY(x, y, 0, 0), 
 					LTC_matrices.linear_atXY(x, y, 0, 1),

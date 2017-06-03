@@ -479,8 +479,7 @@ void main()
             vec3 N = floorPlane.xyz;
             vec3 V = -ray.dir;
 
-            float theta = acos(dot(N, V));
-            vec2 uv = vec2(roughness, theta/(0.5*PI));
+            vec2 uv = vec2(roughness, dot(N, V));
             uv = uv*LUT_SCALE + LUT_BIAS;
 
             vec4 t1 = texture2D(ltc_1, uv);
