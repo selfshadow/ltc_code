@@ -1,7 +1,7 @@
 // bind roughness   {label:"Roughness", default:0.2, min:0.01, max:1, step:0.001}
 // bind dcolor      {label:"Diffuse Color",  r:1.0, g:1.0, b:1.0}
 // bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
-// bind intensity   {label:"Light Intensity", default:10, min:0, max:20, step:1}
+// bind intensity   {label:"Light Intensity", default:100, min:0, max:100, step:1}
 // bind L           {label:"Length", default: 10, min:0.1, max:15, step:0.1}
 // bind R           {label:"Radius", default: 0.2, min:0.05, max:1, step:0.01}
 
