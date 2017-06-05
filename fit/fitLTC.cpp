@@ -28,11 +28,13 @@ const float MIN_ALPHA = 0.00001f;
 
 // computes
 // * the norm (albedo) of the BRDF
+// * the average Schlick Fresnel value
 // * the average direction of the BRDF
 void computeAvgTerms(const Brdf& brdf, const vec3& V, const float alpha,
-	float& norm, vec3& averageDir)
+	float& norm, float& fresnel, vec3& averageDir)
 {
 	norm = 0.0f;
+	fresnel = 0.0f;
 	averageDir = vec3(0,0,0);
 
 	for(int j = 0 ; j < Nsample ; ++j)
@@ -50,13 +52,19 @@ void computeAvgTerms(const Brdf& brdf, const vec3& V, const float alpha,
 
 		if(pdf > 0)
 		{
+			float weight = eval / pdf;
+
+			vec3 H = normalize(V+L);
+
 			// accumulate
-			norm += eval / pdf;
-			averageDir += eval / pdf * L;
+			norm       += weight;
+			fresnel    += weight * pow(1.0f - glm::max(dot(V, H), 0.0f), 5.0f);
+			averageDir += weight * L;
 		}
 	}
 
-	norm = norm / (float)(Nsample*Nsample);
+	norm    /= (float)(Nsample*Nsample);
+	fresnel /= (float)(Nsample*Nsample);
 
 	// clear y component, which should be zero with isotropic BRDFs
 	averageDir.y = 0.0f;
@@ -169,7 +177,7 @@ void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const flo
 }
 
 // fit data
-void fitTab(mat3 * tab, vec2 * tabMagnitude, const int N, const Brdf& brdf)
+void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
 {
 	LTC ltc;
 
@@ -191,7 +199,7 @@ void fitTab(mat3 * tab, vec2 * tabMagnitude, const int N, const Brdf& brdf)
 		cout << endl;
 
 		vec3 averageDir;
-		computeAvgTerms(brdf, V, alpha, ltc.magnitude, averageDir);
+		computeAvgTerms(brdf, V, alpha, ltc.magnitude, ltc.fresnel, averageDir);
 
 		bool isotropic;
 
@@ -241,8 +249,8 @@ void fitTab(mat3 * tab, vec2 * tabMagnitude, const int N, const Brdf& brdf)
 
 		// copy data
 		tab[a + t*N] = ltc.M;
-		tabMagnitude[a + t*N][0] = ltc.magnitude;
-		tabMagnitude[a + t*N][1] = 0;
+		tabMagFresnel[a + t*N][0] = ltc.magnitude;
+		tabMagFresnel[a + t*N][1] = ltc.fresnel;
 
 		// kill useless coefs in matrix
 		tab[a+t*N][0][1] = 0;
@@ -258,8 +266,8 @@ void fitTab(mat3 * tab, vec2 * tabMagnitude, const int N, const Brdf& brdf)
 }
 
 void packTab(
-	vec4* tex1, vec2* tex2,
-	const mat3* tab, const vec2* tabMagnitude, int N)
+	vec4* tex1, vec4* tex2,
+	const mat3* tab, const vec2* tabMagFresnel, int N)
 {
 	for (int i = 0; i < N*N; ++i)
 	{
@@ -288,7 +296,9 @@ void packTab(
 		tex1[i].z = t2;
 		tex1[i].w = t3;
 		tex2[i].x = t4;
-		tex2[i].y = tabMagnitude[i].x;
+		tex2[i].y = tabMagFresnel[i][0];
+		tex2[i].z = tabMagFresnel[i][1];
+		tex2[i].w = 0;
 	}
 }
 
@@ -301,19 +311,19 @@ int main(int argc, char* argv[])
 	
 	// allocate data
 	mat3* tab = new mat3[N*N];
-	vec2* tabMagnitude = new vec2[N*N];
+	vec2* tabMagFresnel = new vec2[N*N];
 
 	// fit
-	fitTab(tab, tabMagnitude, N, brdf);
+	fitTab(tab, tabMagFresnel, N, brdf);
 
 	// pack tables (texture representation)
 	vec4* tex1 = new vec4[N*N];
-	vec2* tex2 = new vec2[N*N];
-	packTab(tex1, tex2, tab, tabMagnitude, N);
+	vec4* tex2 = new vec4[N*N];
+	packTab(tex1, tex2, tab, tabMagFresnel, N);
 
 	// export to C, MATLAB and DDS
-	writeTabMatlab(tab, tabMagnitude, N);
-	writeTabC(tab, tabMagnitude, N);
+	writeTabMatlab(tab, tabMagFresnel, N);
+	writeTabC(tab, tabMagFresnel, N);
 	writeDDS(tex1, tex2, N);
 	writeJS(tex1, tex2, N);
 
@@ -322,7 +332,7 @@ int main(int argc, char* argv[])
 
 	// delete data
 	delete[] tab;
-	delete[] tabMagnitude;
+	delete[] tabMagFresnel;
 	delete[] tex1;
 	delete[] tex2;
 

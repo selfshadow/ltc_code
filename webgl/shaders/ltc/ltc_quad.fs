@@ -1,6 +1,6 @@
 // bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
 // bind dcolor      {label:"Diffuse Color",  r:1.0, g:1.0, b:1.0}
-// bind scolor      {label:"Specular Color", r:1.0, g:1.0, b:1.0}
+// bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
 // bind intensity   {label:"Light Intensity", default:4, min:0, max:10}
 // bind width       {label:"Width",  default: 8, min:0.1, max:15, step:0.1}
 // bind height      {label:"Height", default: 8, min:0.1, max:15, step:0.1}
@@ -414,11 +414,11 @@ void main()
         );
 
         vec3 spec = LTC_Evaluate(N, V, pos, Minv, points, twoSided);
-        spec *= t2.y;
+        spec *= scol*t2.y + (1.0 - scol)*t2.z;
         
         vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided); 
         
-        col = lcol*(scol*spec + dcol*diff);
+        col = lcol*(spec + dcol*diff);
     }
 
     float distToRect;

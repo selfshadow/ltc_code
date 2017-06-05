@@ -13,6 +13,9 @@ struct LTC {
 	// lobe magnitude
 	float magnitude;
 
+	// Average Schlick Fresnel term
+	float fresnel;
+
 	// parametric representation
 	float m11, m22, m13;
 	vec3 X, Y, Z;
@@ -25,6 +28,7 @@ struct LTC {
 	LTC()
 	{
 		magnitude = 1;
+		fresnel = 1;
 		m11 = 1;
 		m22 = 1;
 		m13 = 0;

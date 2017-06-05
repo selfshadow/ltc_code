@@ -2,7 +2,7 @@
 #define _EXPORT_
 
 // export data to C
-void writeTabC(mat3 * tab, vec2 * tabMagnitude, int N)
+void writeTabC(mat3 * tab, vec2 * tabMagFresnel, int N)
 {
 	ofstream file("results/ltc.inc");
 
@@ -45,7 +45,7 @@ void writeTabC(mat3 * tab, vec2 * tabMagnitude, int N)
 	for(int t = 0 ; t < N ; ++t)
 	for(int a = 0 ; a < N ; ++a)
 	{
-		file << tabMagnitude[a + t*N][0] << "f";
+		file << tabMagFresnel[a + t*N][0] << "f";
 		if(a != N-1 || t != N-1)
 			file << ", ";
 		file << endl;
@@ -56,7 +56,7 @@ void writeTabC(mat3 * tab, vec2 * tabMagnitude, int N)
 }
 
 // export data to MATLAB
-void writeTabMatlab(mat3 * tab, vec2 * tabMagnitude, int N)
+void writeTabMatlab(mat3 * tab, vec2 * tabMagFresnel, int N)
 {
 	ofstream file("results/ltc.mat");
 
@@ -69,7 +69,7 @@ void writeTabMatlab(mat3 * tab, vec2 * tabMagnitude, int N)
 	{
 		for(int a = 0 ; a < N ; ++a)
 		{
-			file << tabMagnitude[a + t*N][0] << " " ;
+			file << tabMagFresnel[a + t*N][0] << " " ;
 		}
 		file << endl;
 	}
@@ -101,14 +101,14 @@ void writeTabMatlab(mat3 * tab, vec2 * tabMagnitude, int N)
 // export data to DDS
 #include "dds.h"
 
-void writeDDS(vec4* data1, vec2* data2, int N)
+void writeDDS(vec4* data1, vec4* data2, int N)
 {
 	SaveDDS("results/ltc_1.dds", DDS_FORMAT_R32G32B32A32_FLOAT, sizeof(float)*4, N, N, data1);
-	SaveDDS("results/ltc_2.dds", DDS_FORMAT_R32G32_FLOAT,       sizeof(float)*2, N, N, data2);
+	SaveDDS("results/ltc_2.dds", DDS_FORMAT_R32G32B32A32_FLOAT, sizeof(float)*4, N, N, data2);
 }
 
 // export data to Javascript
-void writeJS(vec4* data1, vec2* data2, int N)
+void writeJS(vec4* data1, vec4* data2, int N)
 {
 	ofstream file("results/ltc.js");
 
@@ -129,7 +129,8 @@ void writeJS(vec4* data1, vec2* data2, int N)
 	{
 		file << data2[i].x << ", ";
 		file << data2[i].y << ", ";
-		file << "0, 0, "   << endl;
+		file << data2[i].z << ", ";
+		file << "0, "      << endl;
 	}
 	file << "];" << endl;
 
