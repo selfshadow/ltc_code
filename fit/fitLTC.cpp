@@ -26,10 +26,14 @@ const int Nsample = 32;
 const float MIN_ALPHA = 0.00001f;
 
 
-// compute the norm (albedo) of the BRDF
-float computeNorm(const Brdf& brdf, const vec3& V, const float alpha)
+// computes
+// * the norm (albedo) of the BRDF
+// * the average direction of the BRDF
+void computeAvgTerms(const Brdf& brdf, const vec3& V, const float alpha,
+	float& norm, vec3& averageDir)
 {
-	float norm = 0.0;
+	norm = 0.0f;
+	averageDir = vec3(0,0,0);
 
 	for(int j = 0 ; j < Nsample ; ++j)
 	for(int i = 0 ; i < Nsample ; ++i)
@@ -44,39 +48,20 @@ float computeNorm(const Brdf& brdf, const vec3& V, const float alpha)
 		float pdf;
 		float eval = brdf.eval(V, L, alpha, pdf);
 
-		// accumulate
-		norm += (pdf > 0) ? eval / pdf : 0.0f;
+		if(pdf > 0)
+		{
+			// accumulate
+			norm += eval / pdf;
+			averageDir += eval / pdf * L;
+		}
 	}
 
-	return norm / (float)(Nsample*Nsample);
-}
-
-// compute the average direction of the BRDF
-vec3 computeAverageDir(const Brdf& brdf, const vec3& V, const float alpha)
-{
-	vec3 averageDir = vec3(0,0,0);
-
-	for(int j = 0 ; j < Nsample ; ++j)
-	for(int i = 0 ; i < Nsample ; ++i)
-	{
-		const float U1 = (i+0.5f)/(float)Nsample;
-		const float U2 = (j+0.5f)/(float)Nsample;
-
-		// sample
-		const vec3 L = brdf.sample(V, alpha, U1, U2);
-
-		// eval
-		float pdf;
-		float eval = brdf.eval(V, L, alpha, pdf);
-
-		// accumulate
-		averageDir += (pdf > 0) ? eval / pdf * L : vec3(0,0,0);
-	}
+	norm = norm / (float)(Nsample*Nsample);
 
 	// clear y component, which should be zero with isotropic BRDFs
 	averageDir.y = 0.0f;
 
-	return normalize(averageDir);
+	averageDir = normalize(averageDir);
 }
 
 // compute the error between the BRDF and the LTC
@@ -205,8 +190,9 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 		cout << "alpha = " << alpha << "\t theta = " << theta << endl;
 		cout << endl;
 
-		ltc.amplitude = computeNorm(brdf, V, alpha); 
-		const vec3 averageDir = computeAverageDir(brdf, V, alpha);		
+		vec3 averageDir;
+		computeAvgTerms(brdf, V, alpha, ltc.amplitude, averageDir);
+
 		bool isotropic;
 
 		// 1. first guess for the fit
