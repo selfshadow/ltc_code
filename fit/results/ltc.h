@@ -12,17 +12,17 @@ struct mat33
 #include "ltc.inc"
 
 #if 1
-mat3 M_GGX(const float theta, const float alpha)
+mat3 M_GGX(const float cosTheta, const float alpha)
 {
-	int t = std::max<int>(0, std::min<int>(size-1, (int)floorf(theta / (0.5f*3.14159f) * size)));
+	int t = std::max<int>(0, std::min<int>(size-1, (int)floorf(cosTheta * size)));
 	int a = std::max<int>(0, std::min<int>(size-1, (int)floorf(sqrtf(alpha) * size)));
 
 	return tabM[a + t*size];
 }
 
-float magnitude_GGX(const float theta, const float alpha)
+float magnitude_GGX(const float cosTheta, const float alpha)
 {
-	int t = std::max<int>(0, std::min<int>(size-1, (int)floorf(theta / (0.5f*3.14159f) * size)));
+	int t = std::max<int>(0, std::min<int>(size-1, (int)floorf(cosTheta * size)));
 	int a = std::max<int>(0, std::min<int>(size-1, (int)floorf(sqrtf(alpha) * size)));
 
 	return tabMagnitude[a + t*size];
