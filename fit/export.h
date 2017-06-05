@@ -2,7 +2,7 @@
 #define _EXPORT_
 
 // export data to C
-void writeTabC(mat3 * tab, vec2 * tabAmplitude, int N)
+void writeTabC(mat3 * tab, vec2 * tabMagnitude, int N)
 {
 	ofstream file("results/ltc.inc");
 
@@ -41,11 +41,11 @@ void writeTabC(mat3 * tab, vec2 * tabAmplitude, int N)
 	}
 	file << "};" << endl << endl;
 
-	file << "static const float tabAmplitude[size*size] = {" << endl;
+	file << "static const float tabMagnitude[size*size] = {" << endl;
 	for(int t = 0 ; t < N ; ++t)
 	for(int a = 0 ; a < N ; ++a)
 	{
-		file << tabAmplitude[a + t*N][0] << "f";
+		file << tabMagnitude[a + t*N][0] << "f";
 		if(a != N-1 || t != N-1)
 			file << ", ";
 		file << endl;
@@ -56,11 +56,11 @@ void writeTabC(mat3 * tab, vec2 * tabAmplitude, int N)
 }
 
 // export data to MATLAB
-void writeTabMatlab(mat3 * tab, vec2 * tabAmplitude, int N)
+void writeTabMatlab(mat3 * tab, vec2 * tabMagnitude, int N)
 {
 	ofstream file("results/ltc.mat");
 
-	file << "# name: tabAmplitude" << endl;
+	file << "# name: tabMagnitude" << endl;
 	file << "# type: matrix" << endl;
 	file << "# ndims: 2" << endl;
 	file << " " << N << " " << N << endl;
@@ -69,7 +69,7 @@ void writeTabMatlab(mat3 * tab, vec2 * tabAmplitude, int N)
 	{
 		for(int a = 0 ; a < N ; ++a)
 		{
-			file << tabAmplitude[a + t*N][0] << " " ;
+			file << tabMagnitude[a + t*N][0] << " " ;
 		}
 		file << endl;
 	}

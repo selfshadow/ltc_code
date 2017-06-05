@@ -20,11 +20,11 @@ mat3 M_GGX(const float theta, const float alpha)
 	return tabM[a + t*size];
 }
 
-float amplitude_GGX(const float theta, const float alpha)
+float magnitude_GGX(const float theta, const float alpha)
 {
 	int t = std::max<int>(0, std::min<int>(size-1, (int)floorf(theta / (0.5f*3.14159f) * size)));
 	int a = std::max<int>(0, std::min<int>(size-1, (int)floorf(sqrtf(alpha) * size)));
 
-	return tabAmplitude[a + t*size];
+	return tabMagnitude[a + t*size];
 }
 #endif
