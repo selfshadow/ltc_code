@@ -85,7 +85,7 @@ float computeError(const LTC& ltc, const Brdf& brdf, const vec3& V, const float 
 			float pdf_brdf;
 			float eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);
 			float eval_ltc = ltc.eval(L);
-			float pdf_ltc = eval_ltc / ltc.amplitude;
+			float pdf_ltc = eval_ltc / ltc.magnitude;
 			double error_ = fabsf(eval_brdf - eval_ltc);
 			error_ = error_*error_*error_;
 			error += error_ / (pdf_ltc + pdf_brdf);
@@ -100,7 +100,7 @@ float computeError(const LTC& ltc, const Brdf& brdf, const vec3& V, const float 
 			float pdf_brdf;
 			float eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);			
 			float eval_ltc = ltc.eval(L);
-			float pdf_ltc = eval_ltc / ltc.amplitude;
+			float pdf_ltc = eval_ltc / ltc.magnitude;
 			double error_ = fabsf(eval_brdf - eval_ltc);
 			error_ = error_*error_*error_;
 			error += error_ / (pdf_ltc + pdf_brdf);
@@ -169,7 +169,7 @@ void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const flo
 }
 
 // fit data
-void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
+void fitTab(mat3 * tab, vec2 * tabMagnitude, const int N, const Brdf& brdf)
 {
 	LTC ltc;
 
@@ -191,7 +191,7 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 		cout << endl;
 
 		vec3 averageDir;
-		computeAvgTerms(brdf, V, alpha, ltc.amplitude, averageDir);
+		computeAvgTerms(brdf, V, alpha, ltc.magnitude, averageDir);
 
 		bool isotropic;
 
@@ -241,8 +241,8 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 
 		// copy data
 		tab[a + t*N] = ltc.M;
-		tabAmplitude[a + t*N][0] = ltc.amplitude;
-		tabAmplitude[a + t*N][1] = 0;
+		tabMagnitude[a + t*N][0] = ltc.magnitude;
+		tabMagnitude[a + t*N][1] = 0;
 
 		// kill useless coefs in matrix
 		tab[a+t*N][0][1] = 0;
@@ -259,7 +259,7 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 
 void packTab(
 	vec4* tex1, vec2* tex2,
-	const mat3* tab, const vec2* tabAmplitude, int N)
+	const mat3* tab, const vec2* tabMagnitude, int N)
 {
 	for (int i = 0; i < N*N; ++i)
 	{
@@ -288,7 +288,7 @@ void packTab(
 		tex1[i].z = t2;
 		tex1[i].w = t3;
 		tex2[i].x = t4;
-		tex2[i].y = tabAmplitude[i].x;
+		tex2[i].y = tabMagnitude[i].x;
 	}
 }
 
@@ -301,19 +301,19 @@ int main(int argc, char* argv[])
 	
 	// allocate data
 	mat3* tab = new mat3[N*N];
-	vec2* tabAmplitude = new vec2[N*N];
+	vec2* tabMagnitude = new vec2[N*N];
 
 	// fit
-	fitTab(tab, tabAmplitude, N, brdf);
+	fitTab(tab, tabMagnitude, N, brdf);
 
 	// pack tables (texture representation)
 	vec4* tex1 = new vec4[N*N];
 	vec2* tex2 = new vec2[N*N];
-	packTab(tex1, tex2, tab, tabAmplitude, N);
+	packTab(tex1, tex2, tab, tabMagnitude, N);
 
 	// export to C, MATLAB and DDS
-	writeTabMatlab(tab, tabAmplitude, N);
-	writeTabC(tab, tabAmplitude, N);
+	writeTabMatlab(tab, tabMagnitude, N);
+	writeTabC(tab, tabMagnitude, N);
 	writeDDS(tex1, tex2, N);
 	writeJS(tex1, tex2, N);
 
@@ -322,7 +322,7 @@ int main(int argc, char* argv[])
 
 	// delete data
 	delete[] tab;
-	delete[] tabAmplitude;
+	delete[] tabMagnitude;
 	delete[] tex1;
 	delete[] tex2;
 

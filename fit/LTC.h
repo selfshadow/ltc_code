@@ -10,8 +10,8 @@ using namespace std;
 
 struct LTC {
 
-	// lobe amplitude
-	float amplitude;
+	// lobe magnitude
+	float magnitude;
 
 	// parametric representation
 	float m11, m22, m13;
@@ -24,7 +24,7 @@ struct LTC {
 
 	LTC()
 	{
-		amplitude = 1;
+		magnitude = 1;
 		m11 = 1;
 		m22 = 1;
 		m13 = 0;
@@ -54,7 +54,7 @@ struct LTC {
 
 		float D = 1.0f / 3.14159f * glm::max<float>(0.0f, Loriginal.z); 
 		
-		float res = amplitude * D / Jacobian;
+		float res = magnitude * D / Jacobian;
 		return res;
 	}
 
