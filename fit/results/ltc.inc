@@ -8198,7 +8198,7 @@ static const mat33 tabMinv[size*size] = {
 {0.886421, -0.000000, 0.000000, -0.000000, 0.886421, -0.000000, 0.000000, -0.000000, 1.000000}
 };
 
-static const float tabAmplitude[size*size] = {
+static const float tabMagnitude[size*size] = {
 0.999804f, 
 0.938155f, 
 0.864755f, 
