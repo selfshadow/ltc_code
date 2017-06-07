@@ -130,7 +130,7 @@ void writeJS(vec4* data1, vec4* data2, int N)
 		file << data2[i].x << ", ";
 		file << data2[i].y << ", ";
 		file << data2[i].z << ", ";
-		file << "0, "      << endl;
+		file << data2[i].w << ", " << endl;
 	}
 	file << "];" << endl;
 

@@ -25,6 +25,7 @@ const int Nsample = 32;
 // minimal roughness (avoid singularities)
 const float MIN_ALPHA = 0.00001f;
 
+const float pi = acosf(-1.0f);
 
 // computes
 // * the norm (albedo) of the BRDF
@@ -265,9 +266,79 @@ void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
 	}
 }
 
+float sqr(float x)
+{
+    return x*x;
+}
+
+float G(float w, float s, float g)
+{
+    return -2.0f*sinf(w)*cosf(s)*cosf(g) + pi/2.0f - g + sinf(g)*cosf(g);
+}
+
+float H(float w, float s, float g)
+{
+    float sinsSq = sqr(sin(s));
+    float cosgSq = sqr(cos(g));
+
+    return cosf(w)*(cosf(g)*sqrtf(sinsSq - cosgSq) + sinsSq*asinf(cosf(g)/sinf(s)));
+}
+
+float ihemi(float w, float s)
+{
+    float g = asinf(cosf(s)/sinf(w));
+    float sinsSq = sqr(sinf(s));
+
+    if (w >= 0.0f && w <= (pi/2.0f - s))
+        return pi*cosf(w)*sinsSq;
+
+    if (w >= (pi/2.0f - s) && w < pi/2.0f)
+        return pi*cosf(w)*sinsSq + G(w, s, g) - H(w, s, g);
+
+    if (w >= pi/2.0f && w < (pi/2.0f + s))
+        return G(w, s, g) + H(w, s, g);
+
+    return 0.0f;
+}
+
+void genSphereTab(float* tabSphere, int N)
+{
+    for(int j=0 ; j < N ; ++j)
+    for(int i=0 ; i < N ; ++i)
+    {
+        const float U1 = float(i)/(N - 1);
+        const float U2 = float(j)/(N - 1);
+
+        // z = cos(elevation angle)
+        float z = 2.0f*U1 - 1.0f;
+
+        // length of average dir., proportional to sin(sigma)^2
+        float len = U2;
+
+        float sigma = asinf(sqrtf(len));
+        float omega = acosf(z);
+
+        // compute projected (cosine-weighted) solid angle of spherical cap
+        float value = 0.0f;
+
+        if (sigma > 0.0f)
+            value = ihemi(omega, sigma)/(pi*len);
+        else
+            value = std::max<float>(z, 0.0f);
+
+        if (value != value)
+            printf("nan!\n");
+
+        tabSphere[i + j*N] = value;
+    }
+}
+
 void packTab(
 	vec4* tex1, vec4* tex2,
-	const mat3* tab, const vec2* tabMagFresnel, int N)
+	const mat3*  tab,
+	const vec2*  tabMagFresnel,
+	const float* tabSphere,
+	int N)
 {
 	for (int i = 0; i < N*N; ++i)
 	{
@@ -298,7 +369,7 @@ void packTab(
 		tex2[i].x = t4;
 		tex2[i].y = tabMagFresnel[i][0];
 		tex2[i].z = tabMagFresnel[i][1];
-		tex2[i].w = 0;
+		tex2[i].w = tabSphere[i];
 	}
 }
 
@@ -310,16 +381,20 @@ int main(int argc, char* argv[])
 	//BrdfDisneyDiffuse brdf;
 	
 	// allocate data
-	mat3* tab = new mat3[N*N];
-	vec2* tabMagFresnel = new vec2[N*N];
+	mat3*  tab = new mat3[N*N];
+	vec2*  tabMagFresnel = new vec2[N*N];
+	float* tabSphere = new float[N*N];
 
 	// fit
 	fitTab(tab, tabMagFresnel, N, brdf);
 
+	// projected solid angle of a spherical cap, clipped to the horizon
+	genSphereTab(tabSphere, N);
+
 	// pack tables (texture representation)
 	vec4* tex1 = new vec4[N*N];
 	vec4* tex2 = new vec4[N*N];
-	packTab(tex1, tex2, tab, tabMagFresnel, N);
+	packTab(tex1, tex2, tab, tabMagFresnel, tabSphere, N);
 
 	// export to C, MATLAB and DDS
 	writeTabMatlab(tab, tabMagFresnel, N);
@@ -333,6 +408,7 @@ int main(int argc, char* argv[])
 	// delete data
 	delete[] tab;
 	delete[] tabMagFresnel;
+	delete[] tabSphere;
 	delete[] tex1;
 	delete[] tex2;
 
