@@ -1,12 +1,13 @@
 // bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
 // bind dcolor      {label:"Diffuse Color",  r:1.0, g:1.0, b:1.0}
-// bind scolor      {label:"Specular Color", r:1.0, g:1.0, b:1.0}
+// bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
 // bind intensity   {label:"Light Intensity", default:4, min:0, max:10}
 // bind width       {label:"Width",  default: 8, min:0.1, max:15, step:0.1}
 // bind height      {label:"Height", default: 8, min:0.1, max:15, step:0.1}
 // bind roty        {label:"Rotation Y", default: 0, min:0, max:1, step:0.001}
 // bind rotz        {label:"Rotation Z", default: 0, min:0, max:1, step:0.001}
 // bind twoSided    {label:"Two-sided", default:false}
+// bind clipless    {label:"Clipless Approximation", default:false}
 
 uniform float roughness;
 uniform vec3  dcolor;
@@ -19,9 +20,10 @@ uniform float roty;
 uniform float rotz;
 
 uniform bool twoSided;
+uniform bool clipless;
 
-uniform sampler2D ltc_mat;
-uniform sampler2D ltc_mag;
+uniform sampler2D ltc_1;
+uniform sampler2D ltc_2;
 
 uniform mat4  view;
 uniform vec2  resolution;
@@ -149,13 +151,23 @@ mat3 transpose(mat3 v)
 // Linearly Transformed Cosines
 ///////////////////////////////
 
+vec3 IntegrateEdgeVec(vec3 v1, vec3 v2)
+{
+    float x = dot(v1, v2);
+    float y = abs(x);
+
+    float a = 0.8543985 + (0.4965155 + 0.0145206*y)*y;
+    float b = 3.4175940 + (4.1616724 + y)*y;
+    float v = a / b;
+
+    float theta_sintheta = (x > 0.0) ? v : 0.5*inversesqrt(1.0 - x*x) - v;
+
+    return cross(v1, v2)*theta_sintheta;
+}
+
 float IntegrateEdge(vec3 v1, vec3 v2)
 {
-    float cosTheta = dot(v1, v2);
-    float theta = acos(cosTheta);    
-    float res = cross(v1, v2).z * ((theta > 0.001) ? theta/sin(theta) : 1.0);
-
-    return res;
+    return IntegrateEdgeVec(v1, v2).z;
 }
 
 void ClipQuadToHorizon(inout vec3 L[5], out int n)
@@ -288,31 +300,68 @@ vec3 LTC_Evaluate(
     L[2] = mul(Minv, points[2] - P);
     L[3] = mul(Minv, points[3] - P);
 
-    int n;
-    ClipQuadToHorizon(L, n);
-    
-    if (n == 0)
-        return vec3(0, 0, 0);
-
-    // project onto sphere
-    L[0] = normalize(L[0]);
-    L[1] = normalize(L[1]);
-    L[2] = normalize(L[2]);
-    L[3] = normalize(L[3]);
-    L[4] = normalize(L[4]);
-
     // integrate
     float sum = 0.0;
 
-    sum += IntegrateEdge(L[0], L[1]);
-    sum += IntegrateEdge(L[1], L[2]);
-    sum += IntegrateEdge(L[2], L[3]);
-    if (n >= 4)
-        sum += IntegrateEdge(L[3], L[4]);
-    if (n == 5)
-        sum += IntegrateEdge(L[4], L[0]);
+    if (clipless)
+    {
+        vec3 dir = points[0].xyz - P;
+        vec3 lightNormal = cross(points[1] - points[0], points[3] - points[0]);
+        bool behind = (dot(dir, lightNormal) < 0.0);
 
-    sum = twoSided ? abs(sum) : max(0.0, sum);
+        L[0] = normalize(L[0]);
+        L[1] = normalize(L[1]);
+        L[2] = normalize(L[2]);
+        L[3] = normalize(L[3]);
+        
+        vec3 vsum = vec3(0.0);
+        
+        vsum += IntegrateEdgeVec(L[0], L[1]);
+        vsum += IntegrateEdgeVec(L[1], L[2]);
+        vsum += IntegrateEdgeVec(L[2], L[3]);
+        vsum += IntegrateEdgeVec(L[3], L[0]);
+
+        float len = length(vsum);
+        float z = vsum.z/len;
+        
+        if (behind)
+            z = -z;
+        
+        vec2 uv = vec2(z*0.5 + 0.5, len);
+        uv = uv*LUT_SCALE + LUT_BIAS;
+        
+        float scale = texture2D(ltc_2, uv).w;
+
+        sum = len*scale;
+        
+        if (behind && !twoSided)
+            sum = 0.0;
+    }
+    else
+    {
+        int n;
+        ClipQuadToHorizon(L, n);
+        
+        if (n == 0)
+            return vec3(0, 0, 0);
+        // project onto sphere
+        L[0] = normalize(L[0]);
+        L[1] = normalize(L[1]);
+        L[2] = normalize(L[2]);
+        L[3] = normalize(L[3]);
+        L[4] = normalize(L[4]);
+    
+        // integrate
+        sum += IntegrateEdge(L[0], L[1]);
+        sum += IntegrateEdge(L[1], L[2]);
+        sum += IntegrateEdge(L[2], L[3]);
+        if (n >= 4)
+            sum += IntegrateEdge(L[3], L[4]);
+        if (n == 5)
+            sum += IntegrateEdge(L[4], L[0]);
+    
+        sum = twoSided ? abs(sum) : max(0.0, sum);
+    }
 
     vec3 Lo_i = vec3(sum, sum, sum);
 
@@ -391,24 +440,24 @@ void main()
         vec3 N = floorPlane.xyz;
         vec3 V = -ray.dir;
         
-        float theta = acos(dot(N, V));
-        vec2 uv = vec2(roughness, theta/(0.5*pi));
+        vec2 uv = vec2(roughness, dot(N, V));
         uv = uv*LUT_SCALE + LUT_BIAS;
         
-        vec4 t = texture2D(ltc_mat, uv);
+        vec4 t1 = texture2D(ltc_1, uv);
+        vec4 t2 = texture2D(ltc_2, uv);
+
         mat3 Minv = mat3(
-            vec3(  1,   0, t.y),
-            vec3(  0, t.z,   0),
-            vec3(t.w,   0, t.x)
+            vec3(t1.x,  0, t1.y),
+            vec3(  0, t1.z,   0),
+            vec3(t1.w,  0, t2.x)
         );
-        
+
         vec3 spec = LTC_Evaluate(N, V, pos, Minv, points, twoSided);
-        spec *= texture2D(ltc_mag, uv).w;
+        spec *= scol*t2.y + (1.0 - scol)*t2.z;
         
         vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided); 
         
-        col  = lcol*(scol*spec + dcol*diff);
-        col /= 2.0*pi;
+        col = lcol*(spec + dcol*diff);
     }
 
     float distToRect;

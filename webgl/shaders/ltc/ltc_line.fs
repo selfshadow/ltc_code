@@ -1,7 +1,7 @@
 // bind roughness   {label:"Roughness", default:0.2, min:0.01, max:1, step:0.001}
 // bind dcolor      {label:"Diffuse Color",  r:1.0, g:1.0, b:1.0}
-// bind scolor      {label:"Specular Color", r:1.0, g:1.0, b:1.0}
-// bind intensity   {label:"Light Intensity", default:10, min:0, max:20, step:1}
+// bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
+// bind intensity   {label:"Light Intensity", default:100, min:0, max:100, step:1}
 // bind L           {label:"Length", default: 10, min:0.1, max:15, step:0.1}
 // bind R           {label:"Radius", default: 0.2, min:0.05, max:1, step:0.01}
 
@@ -22,8 +22,8 @@ uniform float R;
 uniform bool analytic;
 uniform bool endCaps;
 
-uniform sampler2D ltc_mat;
-uniform sampler2D ltc_mag;
+uniform sampler2D ltc_1;
+uniform sampler2D ltc_2;
 
 uniform float roty;
 uniform float rotz;
@@ -479,24 +479,25 @@ void main()
             vec3 N = floorPlane.xyz;
             vec3 V = -ray.dir;
 
-            float theta = acos(dot(N, V));
-            vec2 uv = vec2(roughness, theta/(0.5*PI));
+            vec2 uv = vec2(roughness, dot(N, V));
             uv = uv*LUT_SCALE + LUT_BIAS;
 
-            vec4 t = texture2D(ltc_mat, uv);
+            vec4 t1 = texture2D(ltc_1, uv);
+            vec4 t2 = texture2D(ltc_2, uv);
+
             Minv = mat3(
-                vec3(  1,   0, t.y),
-                vec3(  0, t.z,   0),
-                vec3(t.w,   0, t.x)
+                vec3(t1.x,  0, t1.y),
+                vec3(  0, t1.z,   0),
+                vec3(t1.w,  0, t2.x)
             );
 
             vec3 spec = LTC_Evaluate(N, V, pos);
-            spec *= texture2D(ltc_mag, uv).w;
+            spec *= scol*t2.y + (1.0 - scol)*t2.z;
 
             Minv = mat3(1);
             vec3 diff = LTC_Evaluate(N, V, pos);
 
-            col  = lcol*(scol*spec + dcol*diff);
+            col  = lcol*(spec + dcol*diff);
             col /= 2.0*PI;
         }
 
@@ -508,18 +509,3 @@ void main()
 
     gl_FragColor = vec4(col, 1.0);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

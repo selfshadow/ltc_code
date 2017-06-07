@@ -23,13 +23,20 @@ const int N = 64;
 // number of samples used to compute the error during fitting
 const int Nsample = 32;
 // minimal roughness (avoid singularities)
-const float MIN_ALPHA = 0.0001f;
+const float MIN_ALPHA = 0.00001f;
 
+const float pi = acosf(-1.0f);
 
-// compute the norm (albedo) of the BRDF
-float computeNorm(const Brdf& brdf, const vec3& V, const float alpha)
+// computes
+// * the norm (albedo) of the BRDF
+// * the average Schlick Fresnel value
+// * the average direction of the BRDF
+void computeAvgTerms(const Brdf& brdf, const vec3& V, const float alpha,
+	float& norm, float& fresnel, vec3& averageDir)
 {
-	float norm = 0.0;
+	norm = 0.0f;
+	fresnel = 0.0f;
+	averageDir = vec3(0,0,0);
 
 	for(int j = 0 ; j < Nsample ; ++j)
 	for(int i = 0 ; i < Nsample ; ++i)
@@ -44,39 +51,26 @@ float computeNorm(const Brdf& brdf, const vec3& V, const float alpha)
 		float pdf;
 		float eval = brdf.eval(V, L, alpha, pdf);
 
-		// accumulate
-		norm += (pdf > 0) ? eval / pdf : 0.0f;
+		if(pdf > 0)
+		{
+			float weight = eval / pdf;
+
+			vec3 H = normalize(V+L);
+
+			// accumulate
+			norm       += weight;
+			fresnel    += weight * pow(1.0f - glm::max(dot(V, H), 0.0f), 5.0f);
+			averageDir += weight * L;
+		}
 	}
 
-	return norm / (float)(Nsample*Nsample);
-}
-
-// compute the average direction of the BRDF
-vec3 computeAverageDir(const Brdf& brdf, const vec3& V, const float alpha)
-{
-	vec3 averageDir = vec3(0,0,0);
-
-	for(int j = 0 ; j < Nsample ; ++j)
-	for(int i = 0 ; i < Nsample ; ++i)
-	{
-		const float U1 = (i+0.5f)/(float)Nsample;
-		const float U2 = (j+0.5f)/(float)Nsample;
-
-		// sample
-		const vec3 L = brdf.sample(V, alpha, U1, U2);
-
-		// eval
-		float pdf;
-		float eval = brdf.eval(V, L, alpha, pdf);
-
-		// accumulate
-		averageDir += (pdf > 0) ? eval / pdf * L : vec3(0,0,0);
-	}
+	norm    /= (float)(Nsample*Nsample);
+	fresnel /= (float)(Nsample*Nsample);
 
 	// clear y component, which should be zero with isotropic BRDFs
 	averageDir.y = 0.0f;
 
-	return normalize(averageDir);
+	averageDir = normalize(averageDir);
 }
 
 // compute the error between the BRDF and the LTC
@@ -100,7 +94,7 @@ float computeError(const LTC& ltc, const Brdf& brdf, const vec3& V, const float 
 			float pdf_brdf;
 			float eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);
 			float eval_ltc = ltc.eval(L);
-			float pdf_ltc = eval_ltc / ltc.amplitude;
+			float pdf_ltc = eval_ltc / ltc.magnitude;
 			double error_ = fabsf(eval_brdf - eval_ltc);
 			error_ = error_*error_*error_;
 			error += error_ / (pdf_ltc + pdf_brdf);
@@ -115,7 +109,7 @@ float computeError(const LTC& ltc, const Brdf& brdf, const vec3& V, const float 
 			float pdf_brdf;
 			float eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);			
 			float eval_ltc = ltc.eval(L);
-			float pdf_ltc = eval_ltc / ltc.amplitude;
+			float pdf_ltc = eval_ltc / ltc.magnitude;
 			double error_ = fabsf(eval_brdf - eval_ltc);
 			error_ = error_*error_*error_;
 			error += error_ / (pdf_ltc + pdf_brdf);
@@ -134,24 +128,21 @@ struct FitLTC
 
 	void update(const float * params)
 	{
-		float m11 = std::max<float>(params[0], MIN_ALPHA);
-		float m22 = std::max<float>(params[1], MIN_ALPHA);
+		float m11 = std::max<float>(params[0], 1e-7f);
+		float m22 = std::max<float>(params[1], 1e-7f);
 		float m13 = params[2];
-		float m23 = params[3];
 
 		if(isotropic)
 		{
 			ltc.m11 = m11;
 			ltc.m22 = m11;
 			ltc.m13 = 0.0f;
-			ltc.m23 = 0.0f;
 		}
 		else
 		{
 			ltc.m11 = m11;
 			ltc.m22 = m22;
 			ltc.m13 = m13;
-			ltc.m23 = m23;
 		}
 		ltc.update();
 	}
@@ -174,29 +165,31 @@ struct FitLTC
 // refine first guess by exploring parameter space
 void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const float epsilon = 0.05f, const bool isotropic=false)
 {
-	float startFit[4] = { ltc.m11, ltc.m22, ltc.m13, ltc.m23 };
-	float resultFit[4];
+	float startFit[3] = { ltc.m11, ltc.m22, ltc.m13 };
+	float resultFit[3];
 
 	FitLTC fitter(ltc, brdf, isotropic, V, alpha);
 
 	// Find best-fit LTC lobe (scale, alphax, alphay)
-	float error = NelderMead<4>(resultFit, startFit, epsilon, 1e-5f, 100, fitter);
+	float error = NelderMead<3>(resultFit, startFit, epsilon, 1e-5f, 100, fitter);
 
 	// Update LTC with best fitting values
 	fitter.update(resultFit);
 }
 
 // fit data
-void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
+void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
 {
 	LTC ltc;
 
 	// loop over theta and alpha
-	for(int a = N-1 ; a >= 0   ; --a)
-	for(int t =   0 ; t <= N-1 ; ++t)
+	for(int a = N-1 ; a >= 0 ; --a)
+	for(int t = N-1 ; t >= 0 ; --t)
 	{
-		float theta = std::min<float>(1.57f, t / float(N-1) * 1.57079f);
-		const vec3 V = vec3(sinf(theta),0,cosf(theta));
+		// parameterised by cos(theta)
+		float ct = t / float(N-1);
+		float theta = std::min<float>(1.57f, acosf(ct));
+		const vec3 V = vec3(sinf(theta), 0, cosf(theta));
 
 		// alpha = roughness^2
 		float roughness = a / float(N-1);
@@ -206,14 +199,15 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 		cout << "alpha = " << alpha << "\t theta = " << theta << endl;
 		cout << endl;
 
-		ltc.amplitude = computeNorm(brdf, V, alpha); 
-		const vec3 averageDir = computeAverageDir(brdf, V, alpha);		
+		vec3 averageDir;
+		computeAvgTerms(brdf, V, alpha, ltc.magnitude, ltc.fresnel, averageDir);
+
 		bool isotropic;
 
 		// 1. first guess for the fit
 		// init the hemisphere in which the distribution is fitted
 		// if theta == 0 the lobe is rotationally symmetric and aligned with Z = (0 0 1)
-		if(t == 0)
+		if(t == N-1)
 		{
 			ltc.X = vec3(1,0,0);
 			ltc.Y = vec3(0,1,0);
@@ -226,12 +220,11 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 			}
 			else // init with roughness of previous fit
 			{
-				ltc.m11 = std::max<float>(tab[a+1+t*N][0][0], MIN_ALPHA);
-				ltc.m22 = std::max<float>(tab[a+1+t*N][1][1], MIN_ALPHA);
+				ltc.m11 = tab[a+1+t*N][0][0];
+				ltc.m22 = tab[a+1+t*N][1][1];
 			}
 			
 			ltc.m13 = 0;
-			ltc.m23 = 0;
 			ltc.update();
 
 			isotropic = true;
@@ -239,7 +232,7 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 		// otherwise use previous configuration as first guess
 		else
 		{
-			vec3 L = normalize(averageDir);
+			vec3 L = averageDir;
 			vec3 T1(L.z,0,-L.x);
 			vec3 T2(0,1,0);
 			ltc.X = T1;
@@ -257,15 +250,14 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 
 		// copy data
 		tab[a + t*N] = ltc.M;
-		tabAmplitude[a + t*N][0] = ltc.amplitude;
-		tabAmplitude[a + t*N][1] = 0;
+		tabMagFresnel[a + t*N][0] = ltc.magnitude;
+		tabMagFresnel[a + t*N][1] = ltc.fresnel;
 
-		// kill useless coefs in matrix and normalize
+		// kill useless coefs in matrix
 		tab[a+t*N][0][1] = 0;
 		tab[a+t*N][1][0] = 0;
 		tab[a+t*N][2][1] = 0;
 		tab[a+t*N][1][2] = 0;
-		tab[a+t*N] = 1.0f / tab[a+t*N][2][2] * tab[a+t*N];
 
 		cout << tab[a+t*N][0][0] << "\t " << tab[a+t*N][1][0] << "\t " << tab[a+t*N][2][0] << endl;
 		cout << tab[a+t*N][0][1] << "\t " << tab[a+t*N][1][1] << "\t " << tab[a+t*N][2][1] << endl;
@@ -274,6 +266,112 @@ void fitTab(mat3 * tab, vec2 * tabAmplitude, const int N, const Brdf& brdf)
 	}
 }
 
+float sqr(float x)
+{
+    return x*x;
+}
+
+float G(float w, float s, float g)
+{
+    return -2.0f*sinf(w)*cosf(s)*cosf(g) + pi/2.0f - g + sinf(g)*cosf(g);
+}
+
+float H(float w, float s, float g)
+{
+    float sinsSq = sqr(sin(s));
+    float cosgSq = sqr(cos(g));
+
+    return cosf(w)*(cosf(g)*sqrtf(sinsSq - cosgSq) + sinsSq*asinf(cosf(g)/sinf(s)));
+}
+
+float ihemi(float w, float s)
+{
+    float g = asinf(cosf(s)/sinf(w));
+    float sinsSq = sqr(sinf(s));
+
+    if (w >= 0.0f && w <= (pi/2.0f - s))
+        return pi*cosf(w)*sinsSq;
+
+    if (w >= (pi/2.0f - s) && w < pi/2.0f)
+        return pi*cosf(w)*sinsSq + G(w, s, g) - H(w, s, g);
+
+    if (w >= pi/2.0f && w < (pi/2.0f + s))
+        return G(w, s, g) + H(w, s, g);
+
+    return 0.0f;
+}
+
+void genSphereTab(float* tabSphere, int N)
+{
+    for(int j=0 ; j < N ; ++j)
+    for(int i=0 ; i < N ; ++i)
+    {
+        const float U1 = float(i)/(N - 1);
+        const float U2 = float(j)/(N - 1);
+
+        // z = cos(elevation angle)
+        float z = 2.0f*U1 - 1.0f;
+
+        // length of average dir., proportional to sin(sigma)^2
+        float len = U2;
+
+        float sigma = asinf(sqrtf(len));
+        float omega = acosf(z);
+
+        // compute projected (cosine-weighted) solid angle of spherical cap
+        float value = 0.0f;
+
+        if (sigma > 0.0f)
+            value = ihemi(omega, sigma)/(pi*len);
+        else
+            value = std::max<float>(z, 0.0f);
+
+        if (value != value)
+            printf("nan!\n");
+
+        tabSphere[i + j*N] = value;
+    }
+}
+
+void packTab(
+	vec4* tex1, vec4* tex2,
+	const mat3*  tab,
+	const vec2*  tabMagFresnel,
+	const float* tabSphere,
+	int N)
+{
+	for (int i = 0; i < N*N; ++i)
+	{
+		const mat3& m = tab[i];
+
+		float a = m[0][0];
+		float b = m[0][2];
+		float c = m[1][1];
+		float d = m[2][0];
+		float e = m[2][2];
+
+		// rescaled inverse of m:
+		// a 0 b   inverse  c*e     0     -b*c
+		// 0 c 0     ==>     0  a*e - b*d   0
+		// d 0 e           -c*d     0      a*c
+
+		float t0 =  c*e;
+		float t1 = -b*c;
+		float t2 =  a*e - b*d;
+		float t3 = -c*d;
+		float t4 =  a*c;
+
+		// store the variable terms
+		tex1[i].x = t0;
+		tex1[i].y = t1;
+		tex1[i].z = t2;
+		tex1[i].w = t3;
+		tex2[i].x = t4;
+		tex2[i].y = tabMagFresnel[i][0];
+		tex2[i].z = tabMagFresnel[i][1];
+		tex2[i].w = tabSphere[i];
+	}
+}
 
 int main(int argc, char* argv[])
 {
@@ -283,24 +381,36 @@ int main(int argc, char* argv[])
 	//BrdfDisneyDiffuse brdf;
 	
 	// allocate data
-	mat3 * tab = new mat3[N*N];
-	vec2 * tabAmplitude = new vec2[N*N];
-	
+	mat3*  tab = new mat3[N*N];
+	vec2*  tabMagFresnel = new vec2[N*N];
+	float* tabSphere = new float[N*N];
+
 	// fit
-	fitTab(tab, tabAmplitude, N, brdf);
+	fitTab(tab, tabMagFresnel, N, brdf);
+
+	// projected solid angle of a spherical cap, clipped to the horizon
+	genSphereTab(tabSphere, N);
+
+	// pack tables (texture representation)
+	vec4* tex1 = new vec4[N*N];
+	vec4* tex2 = new vec4[N*N];
+	packTab(tex1, tex2, tab, tabMagFresnel, tabSphere, N);
 
 	// export to C, MATLAB and DDS
-	writeTabMatlab(tab, tabAmplitude, N);
-	writeTabC(tab, tabAmplitude, N);
-	writeDDS(tab, tabAmplitude, N);
-	writeJS(tab, tabAmplitude, N);
+	writeTabMatlab(tab, tabMagFresnel, N);
+	writeTabC(tab, tabMagFresnel, N);
+	writeDDS(tex1, tex2, N);
+	writeJS(tex1, tex2, N);
 
 	// spherical plots
 	make_spherical_plots(brdf, tab, N);
 
 	// delete data
-	delete [] tab;
-	delete [] tabAmplitude;
+	delete[] tab;
+	delete[] tabMagFresnel;
+	delete[] tabSphere;
+	delete[] tex1;
+	delete[] tex2;
 
 	return 0;
 }
