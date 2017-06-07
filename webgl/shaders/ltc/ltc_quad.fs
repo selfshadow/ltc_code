@@ -7,6 +7,7 @@
 // bind roty        {label:"Rotation Y", default: 0, min:0, max:1, step:0.001}
 // bind rotz        {label:"Rotation Z", default: 0, min:0, max:1, step:0.001}
 // bind twoSided    {label:"Two-sided", default:false}
+// bind clipless    {label:"Clipless Approximation", default:false}
 
 uniform float roughness;
 uniform vec3  dcolor;
@@ -19,6 +20,7 @@ uniform float roty;
 uniform float rotz;
 
 uniform bool twoSided;
+uniform bool clipless;
 
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
@@ -298,31 +300,68 @@ vec3 LTC_Evaluate(
     L[2] = mul(Minv, points[2] - P);
     L[3] = mul(Minv, points[3] - P);
 
-    int n;
-    ClipQuadToHorizon(L, n);
-    
-    if (n == 0)
-        return vec3(0, 0, 0);
-
-    // project onto sphere
-    L[0] = normalize(L[0]);
-    L[1] = normalize(L[1]);
-    L[2] = normalize(L[2]);
-    L[3] = normalize(L[3]);
-    L[4] = normalize(L[4]);
-
     // integrate
     float sum = 0.0;
 
-    sum += IntegrateEdge(L[0], L[1]);
-    sum += IntegrateEdge(L[1], L[2]);
-    sum += IntegrateEdge(L[2], L[3]);
-    if (n >= 4)
-        sum += IntegrateEdge(L[3], L[4]);
-    if (n == 5)
-        sum += IntegrateEdge(L[4], L[0]);
+    if (clipless)
+    {
+        vec3 dir = points[0].xyz - P;
+        vec3 lightNormal = cross(points[1] - points[0], points[3] - points[0]);
+        bool behind = (dot(dir, lightNormal) < 0.0);
 
-    sum = twoSided ? abs(sum) : max(0.0, sum);
+        L[0] = normalize(L[0]);
+        L[1] = normalize(L[1]);
+        L[2] = normalize(L[2]);
+        L[3] = normalize(L[3]);
+        
+        vec3 vsum = vec3(0.0);
+        
+        vsum += IntegrateEdgeVec(L[0], L[1]);
+        vsum += IntegrateEdgeVec(L[1], L[2]);
+        vsum += IntegrateEdgeVec(L[2], L[3]);
+        vsum += IntegrateEdgeVec(L[3], L[0]);
+
+        float len = length(vsum);
+        float z = vsum.z/len;
+        
+        if (behind)
+            z = -z;
+        
+        vec2 uv = vec2(z*0.5 + 0.5, len);
+        uv = uv*LUT_SCALE + LUT_BIAS;
+        
+        float scale = texture2D(ltc_2, uv).w;
+
+        sum = len*scale;
+        
+        if (behind && !twoSided)
+            sum = 0.0;
+    }
+    else
+    {
+        int n;
+        ClipQuadToHorizon(L, n);
+        
+        if (n == 0)
+            return vec3(0, 0, 0);
+        // project onto sphere
+        L[0] = normalize(L[0]);
+        L[1] = normalize(L[1]);
+        L[2] = normalize(L[2]);
+        L[3] = normalize(L[3]);
+        L[4] = normalize(L[4]);
+    
+        // integrate
+        sum += IntegrateEdge(L[0], L[1]);
+        sum += IntegrateEdge(L[1], L[2]);
+        sum += IntegrateEdge(L[2], L[3]);
+        if (n >= 4)
+            sum += IntegrateEdge(L[3], L[4]);
+        if (n == 5)
+            sum += IntegrateEdge(L[4], L[0]);
+    
+        sum = twoSided ? abs(sum) : max(0.0, sum);
+    }
 
     vec3 Lo_i = vec3(sum, sum, sum);
 
