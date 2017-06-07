@@ -28,8 +28,8 @@ union FP16
 
 static uint16_t float_to_half_fast(float x)
 {
-	FP32 f;
-	f.f = x;
+    FP32 f;
+    f.f = x;
 
     FP16 o = { 0 };
 
