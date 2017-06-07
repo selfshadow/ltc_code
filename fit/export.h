@@ -100,11 +100,28 @@ void writeTabMatlab(mat3 * tab, vec2 * tabMagFresnel, int N)
 
 // export data to DDS
 #include "dds.h"
+#include "float_to_half.h"
+
+void writeDDS(const char* path, float* data, int N)
+{
+	int numTerms = N*N*4;
+
+	uint16_t* half = new uint16_t[numTerms];
+
+	for(int i = 0; i < numTerms; ++i)
+	{
+		half[i] = float_to_half_fast(data[i]);
+	}
+
+	SaveDDS(path, DDS_FORMAT_R16G16B16A16_FLOAT, sizeof(uint16_t)*4, N, N, (void const*)half);
+
+	delete[] half;
+}
 
 void writeDDS(vec4* data1, vec4* data2, int N)
 {
-	SaveDDS("results/ltc_1.dds", DDS_FORMAT_R32G32B32A32_FLOAT, sizeof(float)*4, N, N, data1);
-	SaveDDS("results/ltc_2.dds", DDS_FORMAT_R32G32B32A32_FLOAT, sizeof(float)*4, N, N, data2);
+	writeDDS("results/ltc_1.dds", &data1[0][0], N);
+	writeDDS("results/ltc_2.dds", &data2[0][0], N);
 }
 
 // export data to Javascript
