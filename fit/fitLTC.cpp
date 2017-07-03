@@ -149,7 +149,7 @@ struct FitLTC
         ltc.update();
     }
 
-    float operator()(const float * params)
+    float operator()(const float* params)
     {
         update(params);
         return computeError(ltc, brdf, V, alpha);
@@ -180,7 +180,7 @@ void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const flo
 }
 
 // fit data
-void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
+void fitTab(mat3* tab, vec2* tabMagFresnel, const int N, const Brdf& brdf)
 {
     LTC ltc;
 
