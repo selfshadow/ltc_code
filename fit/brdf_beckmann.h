@@ -15,8 +15,7 @@ public:
         }
 
         // masking
-        const float a_V = 1.0f / alpha / tanf(acosf(V.z));
-        const float LambdaV = (V.z < 1.0f) ? (1.0f - 1.259f*a_V + 0.396f*a_V*a_V) / (3.535f*a_V + 2.181f*a_V*a_V) : 0.0f;
+        const float LambdaV = lambda(alpha, V.z);
 
         // shadowing
         float G2;
@@ -24,8 +23,7 @@ public:
             G2 = 0;
         else
         {
-            const float a_L = 1.0f / alpha / tanf(acosf(L.z));
-            const float LambdaL = (L.z < 1.0f) ? (1.0f - 1.259f*a_L + 0.396f*a_L*a_L) / (3.535f*a_L + 2.181f*a_L*a_L) : 0.0f;
+            const float LambdaL = lambda(alpha, L.z);
             G2 = 1.0f/(1.0f + LambdaV + LambdaL);
         }
 
@@ -48,6 +46,13 @@ public:
         const vec3 N = normalize(vec3(r*cosf(phi), r*sinf(phi), 1.0f));
         const vec3 L = -V + 2.0f * N * dot(N, V);
         return L;
+    }
+
+private:
+    float lambda(const float alpha, const float cosTheta) const
+    {
+        const float a = 1.0f / alpha / tanf(acosf(cosTheta));
+        return (cosTheta < 1.0f) ? (1.0f - 1.259f*a + 0.396f*a*a) / (3.535f*a + 2.181f*a*a) : 0.0f;
     }
 };
 
