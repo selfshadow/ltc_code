@@ -14,17 +14,17 @@ struct mat33
 #if 1
 mat3 M_GGX(const float cosTheta, const float alpha)
 {
-	int t = std::max<int>(0, std::min<int>(size-1, (int)floorf(sqrtf(1.0f - cosTheta) * size)));
-	int a = std::max<int>(0, std::min<int>(size-1, (int)floorf(sqrtf(alpha) * size)));
+    int t = std::max<int>(0, std::min<int>(size - 1, (int)floorf(sqrtf(1.0f - cosTheta) * size)));
+    int a = std::max<int>(0, std::min<int>(size - 1, (int)floorf(sqrtf(alpha) * size)));
 
-	return tabM[a + t*size];
+    return tabM[a + t*size];
 }
 
 float magnitude_GGX(const float cosTheta, const float alpha)
 {
-	int t = std::max<int>(0, std::min<int>(size-1, (int)floorf(sqrtf(1.0f - cosTheta) * size)));
-	int a = std::max<int>(0, std::min<int>(size-1, (int)floorf(sqrtf(alpha) * size)));
+    int t = std::max<int>(0, std::min<int>(size - 1, (int)floorf(sqrtf(1.0f - cosTheta) * size)));
+    int a = std::max<int>(0, std::min<int>(size - 1, (int)floorf(sqrtf(alpha) * size)));
 
-	return tabMagnitude[a + t*size];
+    return tabMagnitude[a + t*size];
 }
 #endif
