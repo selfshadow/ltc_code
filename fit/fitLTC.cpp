@@ -405,7 +405,7 @@ int main(int argc, char* argv[])
     writeJS(tex1, tex2, N);
 
     // spherical plots
-    make_spherical_plots(brdf, tab, N);
+    // make_spherical_plots(brdf, tab, N);
 
     // delete data
     delete[] tab;
