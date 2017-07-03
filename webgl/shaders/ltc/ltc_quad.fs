@@ -439,8 +439,9 @@ void main()
 
         vec3 N = floorPlane.xyz;
         vec3 V = -ray.dir;
-        
-        vec2 uv = vec2(roughness, dot(N, V));
+
+        float ndotv = saturate(dot(N, V));
+        vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
         uv = uv*LUT_SCALE + LUT_BIAS;
         
         vec4 t1 = texture2D(ltc_1, uv);
