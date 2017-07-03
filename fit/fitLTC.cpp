@@ -36,13 +36,13 @@ void computeAvgTerms(const Brdf& brdf, const vec3& V, const float alpha,
 {
     norm = 0.0f;
     fresnel = 0.0f;
-    averageDir = vec3(0,0,0);
+    averageDir = vec3(0, 0, 0);
 
-    for(int j = 0 ; j < Nsample ; ++j)
-    for(int i = 0 ; i < Nsample ; ++i)
+    for (int j = 0; j < Nsample; ++j)
+    for (int i = 0; i < Nsample; ++i)
     {
-        const float U1 = (i+0.5f)/(float)Nsample;
-        const float U2 = (j+0.5f)/(float)Nsample;
+        const float U1 = (i + 0.5f)/Nsample;
+        const float U2 = (j + 0.5f)/Nsample;
 
         // sample
         const vec3 L = brdf.sample(V, alpha, U1, U2);
@@ -79,25 +79,26 @@ float computeError(const LTC& ltc, const Brdf& brdf, const vec3& V, const float 
 {
     double error = 0.0;
 
-    for(int j = 0 ; j < Nsample ; ++j)
-    for(int i = 0 ; i < Nsample ; ++i)
+    for(int j = 0; j < Nsample; ++j)
+    for(int i = 0; i < Nsample; ++i)
     {
-        const float U1 = (i+0.5f)/(float)Nsample;
-        const float U2 = (j+0.5f)/(float)Nsample;
+        const float U1 = (i + 0.5f)/Nsample;
+        const float U2 = (j + 0.5f)/Nsample;
 
         // importance sample LTC
         {
             // sample
             const vec3 L = ltc.sample(U1, U2);
 
-            // error with MIS weight
             float pdf_brdf;
             float eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);
             float eval_ltc = ltc.eval(L);
-            float pdf_ltc = eval_ltc / ltc.magnitude;
+            float pdf_ltc = eval_ltc/ltc.magnitude;
+
+            // error with MIS weight
             double error_ = fabsf(eval_brdf - eval_ltc);
             error_ = error_*error_*error_;
-            error += error_ / (pdf_ltc + pdf_brdf);
+            error += error_/(pdf_ltc + pdf_brdf);
         }
 
         // importance sample BRDF
@@ -105,14 +106,15 @@ float computeError(const LTC& ltc, const Brdf& brdf, const vec3& V, const float 
             // sample
             const vec3 L = brdf.sample(V, alpha, U1, U2);
 
-            // error with MIS weight
             float pdf_brdf;
             float eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);
             float eval_ltc = ltc.eval(L);
-            float pdf_ltc = eval_ltc / ltc.magnitude;
+            float pdf_ltc = eval_ltc/ltc.magnitude;
+
+            // error with MIS weight
             double error_ = fabsf(eval_brdf - eval_ltc);
             error_ = error_*error_*error_;
-            error += error_ / (pdf_ltc + pdf_brdf);
+            error += error_/(pdf_ltc + pdf_brdf);
         }
     }
 
@@ -163,7 +165,7 @@ struct FitLTC
 
 // fit brute force
 // refine first guess by exploring parameter space
-void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const float epsilon = 0.05f, const bool isotropic=false)
+void fit(LTC& ltc, const Brdf& brdf, const vec3& V, const float alpha, const float epsilon = 0.05f, const bool isotropic = false)
 {
     float startFit[3] = { ltc.m11, ltc.m22, ltc.m13 };
     float resultFit[3];
@@ -183,16 +185,16 @@ void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
     LTC ltc;
 
     // loop over theta and alpha
-    for(int a = N-1 ; a >= 0 ; --a)
-    for(int t = N-1 ; t >= 0 ; --t)
+    for(int a = N - 1; a >= 0; --a)
+    for(int t = N - 1; t >= 0; --t)
     {
         // parameterised by cos(theta)
-        float ct = t / float(N-1);
+        float ct = t/float(N - 1);
         float theta = std::min<float>(1.57f, acosf(ct));
         const vec3 V = vec3(sinf(theta), 0, cosf(theta));
 
         // alpha = roughness^2
-        float roughness = a / float(N-1);
+        float roughness = a/float(N - 1);
         float alpha = std::max<float>(roughness*roughness, MIN_ALPHA);
 
         cout << "a = " << a << "\t t = " << t  << endl;
@@ -207,21 +209,21 @@ void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
         // 1. first guess for the fit
         // init the hemisphere in which the distribution is fitted
         // if theta == 0 the lobe is rotationally symmetric and aligned with Z = (0 0 1)
-        if(t == N-1)
+        if (t == N - 1)
         {
-            ltc.X = vec3(1,0,0);
-            ltc.Y = vec3(0,1,0);
-            ltc.Z = vec3(0,0,1);
+            ltc.X = vec3(1, 0, 0);
+            ltc.Y = vec3(0, 1, 0);
+            ltc.Z = vec3(0, 0, 1);
 
-            if(a == N-1) // roughness = 1
+            if (a == N - 1) // roughness = 1
             {
                 ltc.m11 = 1.0f;
                 ltc.m22 = 1.0f;
             }
             else // init with roughness of previous fit
             {
-                ltc.m11 = tab[a+1+t*N][0][0];
-                ltc.m22 = tab[a+1+t*N][1][1];
+                ltc.m11 = tab[a + 1 + t*N][0][0];
+                ltc.m22 = tab[a + 1 + t*N][1][1];
             }
 
             ltc.m13 = 0;
@@ -233,8 +235,8 @@ void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
         else
         {
             vec3 L = averageDir;
-            vec3 T1(L.z,0,-L.x);
-            vec3 T2(0,1,0);
+            vec3 T1(L.z, 0, -L.x);
+            vec3 T2(0, 1, 0);
             ltc.X = T1;
             ltc.Y = T2;
             ltc.Z = L;
@@ -303,8 +305,8 @@ float ihemi(float w, float s)
 
 void genSphereTab(float* tabSphere, int N)
 {
-    for(int j=0 ; j < N ; ++j)
-    for(int i=0 ; i < N ; ++i)
+    for (int j = 0; j < N; ++j)
+    for (int i = 0; i < N; ++i)
     {
         const float U1 = float(i)/(N - 1);
         const float U2 = float(j)/(N - 1);
