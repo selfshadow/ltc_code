@@ -51,7 +51,7 @@ void computeAvgTerms(const Brdf& brdf, const vec3& V, const float alpha,
         float pdf;
         float eval = brdf.eval(V, L, alpha, pdf);
 
-        if(pdf > 0)
+        if (pdf > 0)
         {
             float weight = eval / pdf;
 
@@ -79,8 +79,8 @@ float computeError(const LTC& ltc, const Brdf& brdf, const vec3& V, const float 
 {
     double error = 0.0;
 
-    for(int j = 0; j < Nsample; ++j)
-    for(int i = 0; i < Nsample; ++i)
+    for (int j = 0; j < Nsample; ++j)
+    for (int i = 0; i < Nsample; ++i)
     {
         const float U1 = (i + 0.5f)/Nsample;
         const float U2 = (j + 0.5f)/Nsample;
@@ -128,13 +128,13 @@ struct FitLTC
     {
     }
 
-    void update(const float * params)
+    void update(const float* params)
     {
         float m11 = std::max<float>(params[0], 1e-7f);
         float m22 = std::max<float>(params[1], 1e-7f);
         float m13 = params[2];
 
-        if(isotropic)
+        if (isotropic)
         {
             ltc.m11 = m11;
             ltc.m22 = m11;
@@ -185,8 +185,8 @@ void fitTab(mat3 * tab, vec2 * tabMagFresnel, const int N, const Brdf& brdf)
     LTC ltc;
 
     // loop over theta and alpha
-    for(int a = N - 1; a >= 0; --a)
-    for(int t = N - 1; t >= 0; --t)
+    for (int a = N - 1; a >= 0; --a)
+    for (int t = N - 1; t >= 0; --t)
     {
         // parameterised by cos(theta)
         float ct = t/float(N - 1);
