@@ -64,7 +64,7 @@ public:
 
     float eval(const vec3& L) const
     {
-        if(isBrdf)
+        if (isBrdf)
         {
             float pdf;
             return brdf->eval(V, L, alpha, pdf);
@@ -75,7 +75,7 @@ public:
 
     vec3 sample(const float U1, const float U2) const
     {
-        return (isBrdf) ? brdf->sample(V, alpha, U1, U2) : ltc->sample(U1, U2);
+        return isBrdf ? brdf->sample(V, alpha, U1, U2) : ltc->sample(U1, U2);
     }
 
     float computeMaxValue() const
