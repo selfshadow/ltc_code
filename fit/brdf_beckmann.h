@@ -17,7 +17,6 @@ public:
         // masking
         const float a_V = 1.0f / alpha / tanf(acosf(V.z));
         const float LambdaV = (V.z < 1.0f) ? (1.0f - 1.259f*a_V + 0.396f*a_V*a_V) / (3.535f*a_V + 2.181f*a_V*a_V) : 0.0f;
-        const float G1 = 1.0f/(1.0f + LambdaV);
 
         // shadowing
         float G2;
