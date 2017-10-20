@@ -231,7 +231,7 @@ function init() {
 
 	// Initialise WebGL
 	try {
-		gl = canvas.getContext("experimental-webgl");
+		gl = canvas.getContext("webgl2"); 
 	} catch(error) { }
 
 	if (!gl) {
@@ -240,8 +240,8 @@ function init() {
 	}
 
 	// Check for float-RT support
-	if (!gl.getExtension("OES_texture_float")) {
-		alert("OES_texture_float not supported");
+	if (!gl.getExtension("EXT_color_buffer_float")) {
+	 	alert("EXT_color_buffer_float not supported");
 		throw "missing webgl extension";
 	}
 
@@ -277,7 +277,7 @@ function init() {
 
     rttTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, rttTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.FLOAT, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.FLOAT, null);
 
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -288,7 +288,8 @@ function init() {
 	blit_vs = FetchFile("shaders/ltc/ltc_blit.vs", false);
 	blit_fs = FetchFile("shaders/ltc/ltc_blit.fs", false);
 
-    var header = "#ifdef GL_ES\nprecision highp float;\n#endif\n#line 0\n";
+    var header = "#version 300 es\nprecision highp float;\n#line 0\n";
+    blit_vs = header + blit_vs;
     blit_fs = header + blit_fs;
 
     blitProgram = gl.createProgram();
@@ -322,12 +323,12 @@ function init() {
 
 	ltc_texture_1 = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, ltc_texture_1);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_1));
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_1));
     SetClampedTextureState();
 
 	ltc_texture_2 = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, ltc_texture_2);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_2));
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_2));
     SetClampedTextureState();
 
 	// Fetch media and kick off the main program once everything has loaded
@@ -384,7 +385,8 @@ function glUniformTypeToString(type) {
 
 
 function createProgram(vertex, fragment) {
-	var header = "#ifdef GL_ES\nprecision highp float;\n#endif\n#line 0\n";
+	var header = "#version 300 es\nprecision highp float;\n#line 0\n";
+	vertex   = header + vertex;
 	fragment = header + fragment;
 
 	var program = gl.createProgram();

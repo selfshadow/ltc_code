@@ -10,16 +10,6 @@ vec3 rrt_odt_fit(vec3 v)
     return a/b;
 }
 
-mat3 transpose(mat3 v)
-{
-    mat3 tmp;
-    tmp[0] = vec3(v[0].x, v[1].x, v[2].x);
-    tmp[1] = vec3(v[0].y, v[1].y, v[2].y);
-    tmp[2] = vec3(v[0].z, v[1].z, v[2].z);
-
-    return tmp;
-}
-
 mat3 mat3_from_rows(vec3 c0, vec3 c1, vec3 c2)
 {
     mat3 m = mat3(c0, c1, c2);
@@ -83,11 +73,13 @@ const float gamma = 2.2;
 vec3 ToLinear(vec3 v) { return PowVec3(v,     gamma); }
 vec3 ToSRGB(vec3 v)   { return PowVec3(v, 1.0/gamma); }
 
+out vec4 FragColor;
+
 void main()
 {
     vec2 pos = gl_FragCoord.xy/resolution;
 
-	vec4 col = texture2D(tex, pos);
+	vec4 col = texture(tex, pos);
 
 	// Rescale by number of samples
 	col /= col.w;
@@ -95,5 +87,5 @@ void main()
 	col.rgb = aces_fitted(col.rgb);
 	col.rgb = ToSRGB(col.rgb);
 
-    gl_FragColor = vec4(col);
+    FragColor = vec4(col);
 }

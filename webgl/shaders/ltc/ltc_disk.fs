@@ -151,16 +151,6 @@ vec3 rotation_yz(vec3 v, float ay, float az)
     return rotation_z(rotation_y(v, ay), az);
 }
 
-mat3 transpose(mat3 v)
-{
-    mat3 tmp;
-    tmp[0] = vec3(v[0].x, v[1].x, v[2].x);
-    tmp[1] = vec3(v[0].y, v[1].y, v[2].y);
-    tmp[2] = vec3(v[0].z, v[1].z, v[2].z);
-
-    return tmp;
-}
-
 mat3 mat3_from_columns(vec3 c0, vec3 c1, vec3 c2)
 {
     mat3 m = mat3(c0, c1, c2);
@@ -437,7 +427,7 @@ vec3 LTC_Evaluate(
     // use tabulated horizon-clipped sphere
     vec2 uv = vec2(avgDir.z*0.5 + 0.5, formFactor);
     uv = uv*LUT_SCALE + LUT_BIAS;
-    float scale = texture2D(ltc_2, uv).w;
+    float scale = texture(ltc_2, uv).w;
 
     float spec = formFactor*scale;
 
@@ -533,6 +523,8 @@ const float gamma = 2.2;
 vec3 ToLinear(vec3 v) { return PowVec3(v,     gamma); }
 vec3 ToSRGB(vec3 v)   { return PowVec3(v, 1.0/gamma); }
 
+out vec4 FragColor;
+
 void main()
 {
     float ay = 2.0*pi*roty;
@@ -584,8 +576,8 @@ void main()
         vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
         uv = uv*LUT_SCALE + LUT_BIAS;
 
-        vec4 t1 = texture2D(ltc_1, uv);
-        vec4 t2 = texture2D(ltc_2, uv);
+        vec4 t1 = texture(ltc_1, uv);
+        vec4 t2 = texture(ltc_2, uv);
 
         mat3 Minv = mat3(
             vec3(t1.x,  0, t1.y),
@@ -606,5 +598,5 @@ void main()
     if (distToDisk < dist)
         col = lcol;
 
-    gl_FragColor = vec4(col, 1.0);
+    FragColor = vec4(col, 1.0);
 }

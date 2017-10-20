@@ -241,7 +241,7 @@ function init() {
 
 	// Check for float-RT support
 	if (!gl.getExtension("EXT_color_buffer_float")) {
-	 	alert("OES_texture_float not supported");
+	 	alert("EXT_color_buffer_float not supported");
 	 	throw "missing webgl extension";
 	}
 
@@ -287,7 +287,8 @@ function init() {
 	blit_vs = FetchFile("shaders/ltc/ltc_blit.vs", false);
 	blit_fs = FetchFile("shaders/ltc/ltc_blit.fs", false);
 
-    var header = "#ifdef GL_ES\nprecision highp float;\n#endif\n#line 0\n";
+    var header = "#version 300 es\nprecision highp float;\n#line 0\n";
+    blit_vs = header + blit_vs;
     blit_fs = header + blit_fs;
 
     blitProgram = gl.createProgram();
@@ -385,7 +386,8 @@ function glUniformTypeToString(type) {
 
 
 function createProgram(vertex, fragment) {
-	var header = "#ifdef GL_ES\nprecision highp float;\n#endif\n#line 0\n";
+	var header = "#version 300 es\nprecision highp float;\n#line 0\n";
+	vertex   = header + vertex;
 	fragment = header + fragment;
 
 	var program = gl.createProgram();

@@ -78,16 +78,6 @@ vec3 rotation_yz_inv(vec3 v, float ay, float az)
     return rotation_y(rotation_z(v, -az), -ay);
 }
 
-mat3 transpose(mat3 v)
-{
-    mat3 tmp;
-    tmp[0] = vec3(v[0].x, v[1].x, v[2].x);
-    tmp[1] = vec3(v[0].y, v[1].y, v[2].y);
-    tmp[2] = vec3(v[0].z, v[1].z, v[2].z);
-
-    return tmp;
-}
-
 // Cylinder helpers
 ////////////////
 
@@ -247,30 +237,6 @@ in vec3 n, out vec3 b1, out vec3 b2)
     float b = -n.x*n.y*a;
     b1 = vec3(1.0 - n.x*n.x*a, b, -n.x);
     b2 = vec3(b, 1.0 - n.y*n.y*a, -n.y);
-}
-
-float determinant(mat3 m)
-{
-    return + m[0][0]*(m[1][1]*m[2][2] - m[2][1]*m[1][2])
-           - m[1][0]*(m[0][1]*m[2][2] - m[2][1]*m[0][2])
-           + m[2][0]*(m[0][1]*m[1][2] - m[1][1]*m[0][2]);
-}
-
-mat3 inverse(mat3 m)
-{
-    float a00 = m[0][0], a01 = m[0][1], a02 = m[0][2];
-    float a10 = m[1][0], a11 = m[1][1], a12 = m[1][2];
-    float a20 = m[2][0], a21 = m[2][1], a22 = m[2][2];
-
-    float b01 =  a22 * a11 - a12 * a21;
-    float b11 = -a22 * a10 + a12 * a20;
-    float b21 =  a21 * a10 - a11 * a20;
-
-    float det = a00 * b01 + a01 * b11 + a02 * b21;
-
-    return mat3(b01, (-a22 * a01 + a02 * a21), ( a12 * a01 - a02 * a11),
-                b11, ( a22 * a00 - a02 * a20), (-a12 * a00 + a02 * a10),
-                b21, (-a21 * a00 + a01 * a20), ( a11 * a00 - a01 * a10)) / det;
 }
 
 mat3 Minv;
@@ -454,6 +420,8 @@ const float gamma = 2.2;
 vec3 ToLinear(vec3 v) { return PowVec3(v,     gamma); }
 vec3 ToSRGB(vec3 v)   { return PowVec3(v, 1.0/gamma); }
 
+out vec4 FragColor;
+
 // Main
 ////////////////
 
@@ -483,8 +451,8 @@ void main()
             vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
             uv = uv*LUT_SCALE + LUT_BIAS;
 
-            vec4 t1 = texture2D(ltc_1, uv);
-            vec4 t2 = texture2D(ltc_2, uv);
+            vec4 t1 = texture(ltc_1, uv);
+            vec4 t2 = texture(ltc_2, uv);
 
             Minv = mat3(
                 vec3(t1.x,  0, t1.y),
@@ -508,5 +476,5 @@ void main()
                 col = lcol;
     }
 
-    gl_FragColor = vec4(col, 1.0);
+    FragColor = vec4(col, 1.0);
 }

@@ -1,4 +1,4 @@
-attribute vec3 position;
+in vec3 position;
 
 void main()
 {
