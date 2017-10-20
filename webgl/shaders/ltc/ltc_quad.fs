@@ -160,7 +160,7 @@ vec3 IntegrateEdgeVec(vec3 v1, vec3 v2)
     float b = 3.4175940 + (4.1616724 + y)*y;
     float v = a / b;
 
-    float theta_sintheta = (x > 0.0) ? v : 0.5*inversesqrt(1.0 - x*x) - v;
+    float theta_sintheta = (x > 0.0) ? v : 0.5*inversesqrt(max(1.0 - x*x, 1e-7)) - v;
 
     return cross(v1, v2)*theta_sintheta;
 }
