@@ -437,13 +437,13 @@ void main()
         vec4 t2 = texture(ltc_2, uv);
 
         mat3 Minv = mat3(
-            vec3(t1.x,  0, t1.y),
-            vec3(  0, t1.z,   0),
-            vec3(t1.w,  0, t2.x)
+            vec3(t1.x, 0, t1.y),
+            vec3(  0,  1,    0),
+            vec3(t1.z, 0, t1.w)
         );
 
         vec3 spec = LTC_Evaluate(N, V, pos, Minv, points, twoSided);
-        spec *= scol*t2.y + (1.0 - scol)*t2.z;
+        spec *= scol*t2.x + (1.0 - scol)*t2.y;
 
         vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided);
 
