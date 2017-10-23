@@ -8,7 +8,8 @@ solution "prefilter"
 
       includedirs {
          "../external/CImg",
-         "../external/glm"
+         "../external/glm",
+         "../external/stb"
       }
 
       defines { 
