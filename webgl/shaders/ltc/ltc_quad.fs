@@ -443,6 +443,7 @@ void main()
         );
 
         vec3 spec = LTC_Evaluate(N, V, pos, Minv, points, twoSided);
+        // BRDF shadowing and Fresnel
         spec *= scol*t2.x + (1.0 - scol)*t2.y;
 
         vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided);
