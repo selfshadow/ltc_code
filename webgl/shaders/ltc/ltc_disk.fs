@@ -19,8 +19,6 @@ uniform float height;
 uniform float roty;
 uniform float rotz;
 
-uniform bool cliplut;
-
 uniform bool groundTruth;
 
 uniform bool twoSided;
@@ -35,10 +33,6 @@ uniform int   sampleCount;
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
 const float LUT_BIAS  = 0.5/LUT_SIZE;
-
-const float LUT_SIZE2  = 32.0;
-const float LUT_SCALE2 = (LUT_SIZE2 - 1.0)/LUT_SIZE2;
-const float LUT_BIAS2  = 0.5/LUT_SIZE2;
 
 const int   NUM_SAMPLES = 1;
 const float pi = 3.14159265;
@@ -93,11 +87,11 @@ float RayDiskIntersect(Ray ray, Disk disk)
 // Camera functions
 ///////////////////
 
-Ray GenerateCameraRay(vec2 fragCoord)
+Ray GenerateCameraRay()
 {
     Ray ray;
 
-    vec2 xy = 2.0*fragCoord/resolution - vec2(1.0);
+    vec2 xy = 2.0*gl_FragCoord.xy/resolution - vec2(1.0);
 
     ray.dir = normalize(vec3(xy, 2.0));
 
@@ -519,9 +513,7 @@ vec3 PowVec3(vec3 v, float p)
 }
 
 const float gamma = 2.2;
-
-vec3 ToLinear(vec3 v) { return PowVec3(v,     gamma); }
-vec3 ToSRGB(vec3 v)   { return PowVec3(v, 1.0/gamma); }
+vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
 out vec4 FragColor;
 
@@ -529,7 +521,7 @@ void main()
 {
     float ay = 2.0*pi*roty;
     float az = 2.0*pi*rotz;
-    
+
     Disk disk = InitDisk(
         vec3(0, 6, 32),
         rotation_yz(vec3(1, 0, 0), ay, az),
@@ -549,7 +541,7 @@ void main()
 
     vec3 col = vec3(0);
 
-    Ray ray = GenerateCameraRay(gl_FragCoord.xy);
+    Ray ray = GenerateCameraRay();
 
     float dist = RayPlaneIntersect(ray, floorPlane);
 
@@ -566,7 +558,7 @@ void main()
     {
         // Clamp distance to some sane maximum to prevent instability
         dist = min(dist, 10000.0);
-    
+
         vec3 pos = ray.origin + dist*ray.dir;
 
         vec3 N = floorPlane.xyz;
