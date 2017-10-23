@@ -452,7 +452,7 @@ void main()
             vec4 t1 = texture(ltc_1, uv);
             vec4 t2 = texture(ltc_2, uv);
 
-            mat3 Minv = mat3(
+            Minv = mat3(
                 vec3(t1.x, 0, t1.y),
                 vec3(  0,  1,    0),
                 vec3(t1.z, 0, t1.w)
