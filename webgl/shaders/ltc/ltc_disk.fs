@@ -89,11 +89,11 @@ float RayDiskIntersect(Ray ray, Disk disk)
 // Camera functions
 ///////////////////
 
-Ray GenerateCameraRay(vec2 fragCoord)
+Ray GenerateCameraRay()
 {
     Ray ray;
 
-    vec2 xy = 2.0*fragCoord/resolution - vec2(1.0);
+    vec2 xy = 2.0*gl_FragCoord.xy/resolution - vec2(1.0);
 
     ray.dir = normalize(vec3(xy, 2.0));
 
@@ -543,7 +543,7 @@ void main()
 
     vec3 col = vec3(0);
 
-    Ray ray = GenerateCameraRay(gl_FragCoord.xy);
+    Ray ray = GenerateCameraRay();
 
     float dist = RayPlaneIntersect(ray, floorPlane);
 

@@ -95,11 +95,11 @@ struct Ray
     vec3 dir;
 };
 
-Ray GenerateCameraRay(float u1, float u2)
+Ray GenerateCameraRay()
 {
     Ray ray;
 
-    vec2 xy = 2.0*(gl_FragCoord.xy)/resolution - vec2(1.0);
+    vec2 xy = 2.0*gl_FragCoord.xy/resolution - vec2(1.0);
 
     ray.dir = normalize(vec3(xy, 2.0));
 
@@ -434,7 +434,7 @@ void main()
     vec3 col = vec3(0);
 
     {
-        Ray ray = GenerateCameraRay(0.0, 0.0);
+        Ray ray = GenerateCameraRay();
 
         float distToFloor;
         bool hitFloor = RayPlaneIntersect(ray, floorPlane, distToFloor);
