@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
     for (unsigned int level = 0; level < Nlevels; ++level)
     {
         stringstream filenameOutput (stringstream::in | stringstream::out);
-        filenameOutput << filename << "_cosineFiltered_" << level << ".bmp";
+        filenameOutput << filename << "_filtered_" << level << ".png";
 
         cout << "processing file " << filenameOutput.str() << endl;
         unsigned int width = imageInput.width() >> level;
@@ -222,4 +222,3 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-
