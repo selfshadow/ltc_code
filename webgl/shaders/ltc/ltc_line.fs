@@ -453,13 +453,14 @@ void main()
             vec4 t2 = texture(ltc_2, uv);
 
             Minv = mat3(
-                vec3(t1.x,  0, t1.y),
-                vec3(  0, t1.z,   0),
-                vec3(t1.w,  0, t2.x)
+                vec3(t1.x, 0, t1.y),
+                vec3(  0,  1,    0),
+                vec3(t1.z, 0, t1.w)
             );
 
             vec3 spec = LTC_Evaluate(N, V, pos);
-            spec *= scol*t2.y + (1.0 - scol)*t2.z;
+            // BRDF shadowing and Fresnel
+            spec *= scol*t2.x + (1.0 - scol)*t2.y;
 
             Minv = mat3(1);
             vec3 diff = LTC_Evaluate(N, V, pos);
