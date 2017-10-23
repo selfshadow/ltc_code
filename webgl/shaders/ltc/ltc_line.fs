@@ -416,9 +416,7 @@ vec3 PowVec3(vec3 v, float p)
 }
 
 const float gamma = 2.2;
-
-vec3 ToLinear(vec3 v) { return PowVec3(v,     gamma); }
-vec3 ToSRGB(vec3 v)   { return PowVec3(v, 1.0/gamma); }
+vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
 out vec4 FragColor;
 

@@ -36,10 +36,6 @@ const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
 const float LUT_BIAS  = 0.5/LUT_SIZE;
 
-const float LUT_SIZE2  = 32.0;
-const float LUT_SCALE2 = (LUT_SIZE2 - 1.0)/LUT_SIZE2;
-const float LUT_BIAS2  = 0.5/LUT_SIZE2;
-
 const int   NUM_SAMPLES = 1;
 const float pi = 3.14159265;
 const float NO_HIT = 1e9;
@@ -519,9 +515,7 @@ vec3 PowVec3(vec3 v, float p)
 }
 
 const float gamma = 2.2;
-
-vec3 ToLinear(vec3 v) { return PowVec3(v,     gamma); }
-vec3 ToSRGB(vec3 v)   { return PowVec3(v, 1.0/gamma); }
+vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
 out vec4 FragColor;
 
