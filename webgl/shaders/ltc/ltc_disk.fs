@@ -529,7 +529,7 @@ void main()
 {
     float ay = 2.0*pi*roty;
     float az = 2.0*pi*rotz;
-    
+
     Disk disk = InitDisk(
         vec3(0, 6, 32),
         rotation_yz(vec3(1, 0, 0), ay, az),
@@ -566,7 +566,7 @@ void main()
     {
         // Clamp distance to some sane maximum to prevent instability
         dist = min(dist, 10000.0);
-    
+
         vec3 pos = ray.origin + dist*ray.dir;
 
         vec3 N = floorPlane.xyz;

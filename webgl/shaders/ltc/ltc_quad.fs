@@ -68,9 +68,9 @@ bool RayRectIntersect(Ray ray, Rect rect, out float t)
     {
         vec3 pos  = ray.origin + ray.dir*t;
         vec3 lpos = pos - rect.center;
-        
+
         float x = dot(lpos, rect.dirx);
-        float y = dot(lpos, rect.diry);    
+        float y = dot(lpos, rect.diry);
 
         if (abs(x) > rect.halfx || abs(y) > rect.halfy)
             intersect = false;
@@ -264,7 +264,7 @@ void ClipQuadToHorizon(inout vec3 L[5], out int n)
     {
         n = 4;
     }
-    
+
     if (n == 3)
         L[3] = L[0];
     if (n == 4)
@@ -303,9 +303,9 @@ vec3 LTC_Evaluate(
         L[1] = normalize(L[1]);
         L[2] = normalize(L[2]);
         L[3] = normalize(L[3]);
-        
+
         vec3 vsum = vec3(0.0);
-        
+
         vsum += IntegrateEdgeVec(L[0], L[1]);
         vsum += IntegrateEdgeVec(L[1], L[2]);
         vsum += IntegrateEdgeVec(L[2], L[3]);
@@ -313,17 +313,17 @@ vec3 LTC_Evaluate(
 
         float len = length(vsum);
         float z = vsum.z/len;
-        
+
         if (behind)
             z = -z;
-        
+
         vec2 uv = vec2(z*0.5 + 0.5, len);
         uv = uv*LUT_SCALE + LUT_BIAS;
-        
+
         float scale = texture(ltc_2, uv).w;
 
         sum = len*scale;
-        
+
         if (behind && !twoSided)
             sum = 0.0;
     }
@@ -331,7 +331,7 @@ vec3 LTC_Evaluate(
     {
         int n;
         ClipQuadToHorizon(L, n);
-        
+
         if (n == 0)
             return vec3(0, 0, 0);
         // project onto sphere
@@ -340,7 +340,7 @@ vec3 LTC_Evaluate(
         L[2] = normalize(L[2]);
         L[3] = normalize(L[3]);
         L[4] = normalize(L[4]);
-    
+
         // integrate
         sum += IntegrateEdge(L[0], L[1]);
         sum += IntegrateEdge(L[1], L[2]);
@@ -349,7 +349,7 @@ vec3 LTC_Evaluate(
             sum += IntegrateEdge(L[3], L[4]);
         if (n == 5)
             sum += IntegrateEdge(L[4], L[0]);
-    
+
         sum = twoSided ? abs(sum) : max(0.0, sum);
     }
 
@@ -418,7 +418,7 @@ void main()
     vec3 lcol = vec3(intensity);
     vec3 dcol = ToLinear(dcolor);
     vec3 scol = ToLinear(scolor);
-    
+
     vec3 col = vec3(0);
 
     Ray ray = GenerateCameraRay(0.0, 0.0);
@@ -435,7 +435,7 @@ void main()
         float ndotv = saturate(dot(N, V));
         vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
         uv = uv*LUT_SCALE + LUT_BIAS;
-        
+
         vec4 t1 = texture(ltc_1, uv);
         vec4 t2 = texture(ltc_2, uv);
 
@@ -447,9 +447,9 @@ void main()
 
         vec3 spec = LTC_Evaluate(N, V, pos, Minv, points, twoSided);
         spec *= scol*t2.y + (1.0 - scol)*t2.z;
-        
-        vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided); 
-        
+
+        vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided);
+
         col = lcol*(spec + dcol*diff);
     }
 
