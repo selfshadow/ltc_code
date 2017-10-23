@@ -1,6 +1,3 @@
-// prefilterTexture.cpp : Defines the entry point for the console application.
-//
-// g++ prefilterAreaLightwithBorder.cpp -o prefilterAreaLightwithBorder -lm -lpthread -lX11
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -14,11 +11,6 @@ using namespace glm;
 
 #include "CImg.h"
 using namespace cimg_library;
-
-// input texture
-const char filename[64] = "rainbow";
-const char extension[64] = ".png";
-
 
 // filtered texture with borders
 
@@ -58,6 +50,8 @@ float gaussianFilterSTD2level(int filterSTD)
 // and prefiltered with Gaussian kernel
 void prefilterInput(CImg<float>& imageInput)
 {
+	cout << "Prefiltering input..." << endl;
+
 	// allocate
 	imageInputPrefiltered = new CImg<float>(imageInput.width(), imageInput.height(), 32, 4);
 
@@ -100,7 +94,8 @@ void prefilterInput(CImg<float>& imageInput)
 			(*imageInputPrefiltered)(i,j,level,3) = imageInput_(i,j,0,3);
 		}
 
-		// 
+		// debug 
+	#if 0
 		cout << "temporary filtered file " << level << endl;
 		cout << "filter std = " << filterSTD << endl;
 
@@ -110,6 +105,7 @@ void prefilterInput(CImg<float>& imageInput)
 		imageInput_.save(filenameOutput.str().c_str());
 
 		cout << endl;
+	#endif
 	}
 }
 
@@ -187,11 +183,23 @@ void filterWithBorder(CImg<float>& imageInput, CImg<float>& imageOutput, const i
 
 int main(int argc, char* argv[])
 {
-	distToScaledTexture(vec2(0.5, 0.1));
-	distToScaledTexture(vec2(0.05, 0.1));
+    // Skip executable argument
+    argc--;
+    argv++;
+
+    if (argc < 1)
+    {
+        printf("Syntax: <input file>\n");
+        return 0;
+    }
+
+    string filenameInput(argv[0]);
+	size_t pos = filenameInput.find_last_of(".");
+    string filename  = filenameInput.substr(0, pos);
+    string extension = filenameInput.substr(pos + 1, string::npos);
 
 	// input image
-	CImg<float> imageInput(string(string(filename)+string(extension)).c_str());
+	CImg<float> imageInput(filenameInput.c_str());
 
 	// prefilter input with Gaussian kernel
 	prefilterInput(imageInput);
