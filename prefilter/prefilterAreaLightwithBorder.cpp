@@ -12,6 +12,12 @@ using namespace glm;
 #include "CImg.h"
 using namespace cimg_library;
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 // filtered texture with borders
 
 const float borderWidth = 0.125f;
@@ -191,7 +197,17 @@ int main(int argc, char* argv[])
     string extension = filenameInput.substr(pos + 1, string::npos);
 
     // input image
-    CImg<float> imageInput(filenameInput.c_str());
+    int x, y, n;
+    float* data = stbi_loadf(filenameInput.c_str(), &x, &y, &n, 3);
+
+    int offset = 0;
+    CImg<float> imageInput(x, y, 1, 3);
+    for (int j = 0; j < imageInput.height(); ++j)
+    for (int i = 0; i < imageInput.width();  ++i)
+    {
+        for (int k = 0; k < imageInput.spectrum(); ++k)
+            imageInput(i, j, 0, k) = data[offset++];
+    }
 
     // prefilter input with Gaussian kernel
     prefilterInput(imageInput);
@@ -204,7 +220,7 @@ int main(int argc, char* argv[])
     for (unsigned int level = 0; level < Nlevels; ++level)
     {
         stringstream filenameOutput (stringstream::in | stringstream::out);
-        filenameOutput << filename << "_filtered_" << level << ".png";
+        filenameOutput << filename << "_filtered_" << level << ".hdr";
 
         cout << "processing file " << filenameOutput.str() << endl;
         unsigned int width = imageInput.width() >> level;
@@ -217,7 +233,16 @@ int main(int argc, char* argv[])
 
         filterWithBorder(imageInput, imageOutput, level, Nlevels);
 
-        imageOutput.save(filenameOutput.str().c_str());
+        offset = 0;
+        for (int j = 0; j < imageOutput.height(); ++j)
+        for (int i = 0; i < imageOutput.width();  ++i)
+        {
+            data[offset++] = imageOutput(i, j, 0, 0);
+            data[offset++] = imageOutput(i, j, 0, 1);
+            data[offset++] = imageOutput(i, j, 0, 2);
+        }
+
+        stbi_write_hdr(filenameOutput.str().c_str(), width, height, 3, data);
     }
 
     return 0;
