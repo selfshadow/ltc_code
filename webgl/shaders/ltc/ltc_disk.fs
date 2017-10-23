@@ -19,8 +19,6 @@ uniform float height;
 uniform float roty;
 uniform float rotz;
 
-uniform bool cliplut;
-
 uniform bool groundTruth;
 
 uniform bool twoSided;
