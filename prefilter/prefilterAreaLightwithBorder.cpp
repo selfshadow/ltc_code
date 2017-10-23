@@ -39,7 +39,7 @@ float level2gaussianFilterSTD(int level)
 float gaussianFilterSTD2level(int filterSTD)
 {
     float level = (logf(filterSTD) - logf(0.5f)) / logf(1.3f);
-    level = std::max<float>(0.0f, std::min<float>( float((*imageInputPrefiltered).depth()) - 1.0f, level));
+    level = std::max<float>(0.0f, std::min<float>(float((*imageInputPrefiltered).depth()) - 1.0f, level));
     return level;
 }
 
