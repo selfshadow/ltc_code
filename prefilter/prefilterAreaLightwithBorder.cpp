@@ -85,10 +85,10 @@ void prefilterInput(CImg<float>& imageInput)
         for (int j = 0; j < imageInput.height(); ++j)
         for (int i = 0; i < imageInput.width();  ++i)
         {
-            (*imageInputPrefiltered)(i,j,level,0) = imageInput_(i,j,0,0);
-            (*imageInputPrefiltered)(i,j,level,1) = imageInput_(i,j,0,1);
-            (*imageInputPrefiltered)(i,j,level,2) = imageInput_(i,j,0,2);
-            (*imageInputPrefiltered)(i,j,level,3) = imageInput_(i,j,0,3);
+            (*imageInputPrefiltered)(i, j, level, 0) = imageInput_(i, j, 0, 0);
+            (*imageInputPrefiltered)(i, j, level, 1) = imageInput_(i, j, 0, 1);
+            (*imageInputPrefiltered)(i, j, level, 2) = imageInput_(i, j, 0, 2);
+            (*imageInputPrefiltered)(i, j, level, 3) = imageInput_(i, j, 0, 3);
         }
 
         // debug
