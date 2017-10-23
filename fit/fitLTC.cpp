@@ -350,7 +350,7 @@ void packTab(
         mat3 invM = inverse(m);
 
         // normalize by the middle element
-        invM /= m[1][1];
+        invM /= invM[1][1];
 
         // store the variable terms
         tex1[i].x = invM[0][0];
