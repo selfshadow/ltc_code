@@ -318,7 +318,7 @@ vec3 FetchDiffuseFilteredTexture(sampler2D texLightFiltered, vec3 p1, vec3 p2, v
     float lod = log(2048.0*d)/log(3.0);
     lod = min(lod, 8.0);
 
-    return textureLod(texLightFiltered, vec2(0.125, 0.125) + 0.75 * Puv, lod).rgb;
+    return textureLod(texLightFiltered, Puv, lod).rgb;
 }
 
 vec3 LTC_Evaluate(
