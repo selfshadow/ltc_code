@@ -525,7 +525,7 @@ void main()
         if ((distToRect < distToFloor) || !hitFloor)
         {
             vec3 pos = ray.origin + ray.dir*distToRect;
-            vec2 uv  = RectUVs(pos, rect)*0.75 + 0.125;
+            vec2 uv  = RectUVs(pos, rect);
             uv = uv*vec2(1, -1) + vec2(0, 1);
             col = lcol*textureLod(tex, uv, 0.0).rgb;
         }
