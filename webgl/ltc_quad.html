@@ -62,6 +62,8 @@
 
 <script src="js/jquery-ui-1.8.13.custom.min.js" type="text/javascript"></script>
 
+<script src="js/hdrpng.min.js" type="text/javascript"></script>
+
 <script src="../fit/results/ltc.js" type="text/javascript"></script>
 
 
@@ -187,6 +189,8 @@ var controller = null;
 var ltc_texture_1 = null;
 var ltc_texture_2 = null;
 
+var color_texture = null;
+
 var rttFramebuffer = null;
 var rttTexture = null;
 
@@ -215,6 +219,61 @@ function SetClampedTextureState()
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
+
+function SetClampedMIPTextureState()
+{
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+// From: https://github.com/enkimute/hdrpng.js/blob/master/hdrpng.js
+function rgb9_e5ToFloat(buffer, res) {
+    var v, s, l = buffer.byteLength >> 2, res = res || new Float32Array(l*3);
+    for (var i = 0; i < l; i++) {
+        v = buffer[i]; s = Math.pow(2, (v & 31) - 24);
+        res[i*3 + 0] = ((v>>>23)&511)*s;
+        res[i*3 + 1] = ((v>>>14)&511)*s;
+        res[i*3 + 2] = ((v>>> 5)&511)*s;
+    }
+    return res;
+}
+
+var g_levels_loaded = 0;
+
+function LoadTextureLevel(gl, src, level, dest) {
+    var image = new Image();
+    image.onload = function() {
+        var x = image.width;
+        var y = image.height;
+
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+        var fb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+        var res = new Uint8Array(x * y * 4);
+        gl.readPixels(0, 0, x, y, gl.RGBA,gl.UNSIGNED_BYTE,res);
+
+        gl.deleteTexture(texture);
+        gl.deleteFramebuffer(fb);
+
+        var dataU32 = new Uint32Array(res.buffer);
+        var dataF32 = rgb9_e5ToFloat(dataU32);
+
+        g_levels_loaded++;
+
+        gl.bindTexture(gl.TEXTURE_2D, dest);
+        gl.texImage2D(gl.TEXTURE_2D, level, gl.RGB9_E5, x, y, 0, gl.RGB, gl.FLOAT, dataF32);
+    }
+
+    image.src = src;
+}
+
 
 function init() {
     vertex_shader   = FetchFile("shaders/ltc/ltc.vs", false);
@@ -330,6 +389,20 @@ function init() {
     gl.bindTexture(gl.TEXTURE_2D, ltc_texture_2);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_2));
     SetClampedTextureState();
+
+    color_texture = gl.createTexture();
+    LoadTextureLevel(gl, "images/stained_glass_filtered_0.RGB9_E5.PNG", 0, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_1.RGB9_E5.PNG", 1, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_2.RGB9_E5.PNG", 2, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_3.RGB9_E5.PNG", 3, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_4.RGB9_E5.PNG", 4, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_5.RGB9_E5.PNG", 5, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_6.RGB9_E5.PNG", 6, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_7.RGB9_E5.PNG", 7, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_8.RGB9_E5.PNG", 8, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_9.RGB9_E5.PNG", 9, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_10.RGB9_E5.PNG", 10, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_11.RGB9_E5.PNG", 11, color_texture);
 
     // Fetch media and kick off the main program once everything has loaded
     $(function() {
@@ -652,6 +725,15 @@ function draw() {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, ltc_texture_2);
     gl.uniform1i(gl.getUniformLocation(currentProgram, "ltc_2"), 1);
+
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, color_texture);
+    gl.uniform1i(gl.getUniformLocation(currentProgram, "tex"), 2);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, g_levels_loaded == 12 ? gl.LINEAR_MIPMAP_LINEAR : gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,     gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,     gl.CLAMP_TO_EDGE);
+    //SetClampedMIPTextureState();
 
     checkGLError();
 

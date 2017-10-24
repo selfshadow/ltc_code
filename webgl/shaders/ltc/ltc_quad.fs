@@ -21,9 +21,12 @@ uniform float rotz;
 
 uniform bool twoSided;
 uniform bool clipless;
+uniform bool debug;
 
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
+
+uniform sampler2D tex;
 
 uniform mat4  view;
 uniform vec2  resolution;
@@ -77,6 +80,18 @@ bool RayRectIntersect(Ray ray, Rect rect, out float t)
     }
 
     return intersect;
+}
+
+vec2 RectUVs(vec3 pos, Rect rect)
+{
+    vec3 lpos = pos - rect.center;
+
+    float x = dot(lpos, rect.dirx);
+    float y = dot(lpos, rect.diry);
+
+    return vec2(
+        0.5*x/rect.halfx + 0.5,
+        0.5*y/rect.halfy + 0.5);
 }
 
 // Camera functions
@@ -270,6 +285,146 @@ void ClipQuadToHorizon(inout vec3 L[5], out int n)
         L[4] = L[0];
 }
 
+vec3 FetchDiffuseFilteredTexture(sampler2D texLightFiltered, vec3 p1, vec3 p2, vec3 p3, vec3 p4)
+{
+    // area light plane basis
+    vec3 V1 = p2 - p1;
+    vec3 V2 = p4 - p1;
+    vec3 planeOrtho = cross(V1, V2);
+    float planeAreaSquared = dot(planeOrtho, planeOrtho);
+    float planeDistxPlaneArea = dot(planeOrtho, p1);
+    // orthonormal projection of (0,0,0) in area light space
+    vec3 P = planeDistxPlaneArea * planeOrtho / planeAreaSquared - p1;
+
+    // find tex coords of P
+    float dot_V1_V2 = dot(V1, V2);
+    float inv_dot_V1_V1 = 1.0 / dot(V1, V1);
+    vec3 V2_ = V2 - V1 * dot_V1_V2 * inv_dot_V1_V1;
+    vec2 Puv;
+    Puv.y = dot(V2_, P) / dot(V2_, V2_);
+    Puv.x = dot(V1, P)*inv_dot_V1_V1 - dot_V1_V2*inv_dot_V1_V1*Puv.y;
+
+    // LOD
+    float d = abs(planeDistxPlaneArea) / pow(planeAreaSquared, 0.75);
+    
+    // Flip texture to match OpenGL conventions
+    Puv = Puv*vec2(1, -1) + vec2(0, 1);
+    
+    float lod = log(2048.0*d)/log(3.0);
+    lod = min(lod, 8.0);
+
+    return textureLod(texLightFiltered, vec2(0.125, 0.125) + 0.75 * Puv, lod).rgb;
+}
+
+vec3 nearestTexture(sampler2D sampler, mat3 M, mat3 Minv, vec3 p1_, vec3 p2_, vec3 p3_, vec3 p4_)
+{
+    vec3 p1_diffuse = mul(Minv, p1_);
+    vec3 p2_diffuse = mul(Minv, p2_);
+    vec3 p3_diffuse = mul(Minv, p3_);
+    vec3 p4_diffuse = mul(Minv, p4_);
+
+    vec3 planeNormal = normalize(cross(p1_diffuse-p2_diffuse, p1_diffuse-p4_diffuse));
+
+    if (dot(planeNormal, p1_diffuse) < 0.0)
+        planeNormal *= -1.0;
+
+    float planeDist = dot(planeNormal, p1_diffuse);
+
+    vec3 intersection_diffuse = planeDist * planeNormal;
+
+    vec3 intersection = mul(M, intersection_diffuse);
+
+    vec2 interTex = vec2(dot(intersection-p1_, p2_-p1_)/length(p2_-p1_)/length(p2_-p1_), dot(intersection-p1_, p4_-p1_)/length(p4_-p1_)/length(p4_-p1_));
+
+    vec3 areaTextureVector = cross(p2_diffuse-p1_diffuse, p4_diffuse-p1_diffuse);
+    float areaTexture = dot(areaTextureVector, areaTextureVector);
+    float d = planeDist/pow(areaTexture, 0.25);
+
+    // Flip texture to match OpenGL conventions
+    interTex = interTex*vec2(1, -1) + vec2(0, 1);
+
+    float lod = log(2048.0*d)/log(3.0);
+    lod = min(lod, 8.0);
+
+    return textureLod(sampler, vec2(0.125, 0.125) + 0.75 * interTex, lod).rgb;
+}
+
+vec3 nearestTexture2(sampler2D sampler, mat3 M, mat3 Minv, vec3 p1_, vec3 p2_, vec3 p3_, vec3 p4_, vec3 dir)
+{
+    vec3 p1_diffuse = mul(Minv, p1_);
+    vec3 p2_diffuse = mul(Minv, p2_);
+    vec3 p3_diffuse = mul(Minv, p3_);
+    vec3 p4_diffuse = mul(Minv, p4_);
+
+    vec3 planeNormal = normalize(cross(p1_diffuse-p2_diffuse, p1_diffuse-p4_diffuse));
+
+    if (dot(planeNormal, p1_diffuse) < 0.0)
+        planeNormal *= -1.0;
+
+    Ray ray;
+    ray.origin = vec3(0, 0, 0);
+    ray.dir = dir;
+    vec4 plane = vec4(planeNormal, -dot(planeNormal, p1_diffuse));
+    float planeDist;
+    RayPlaneIntersect(ray, plane, planeDist);
+
+    //float planeDist = dot(planeNormal, p1_diffuse);
+
+    vec3 intersection_diffuse = planeDist * ray.dir;
+
+    vec3 intersection = mul(M, intersection_diffuse);
+
+    vec2 interTex = vec2(dot(intersection-p1_, p2_-p1_)/length(p2_-p1_)/length(p2_-p1_), dot(intersection-p1_, p4_-p1_)/length(p4_-p1_)/length(p4_-p1_));
+
+    vec3 areaTextureVector = cross(p2_diffuse-p1_diffuse, p4_diffuse-p1_diffuse);
+    float areaTexture = dot(areaTextureVector, areaTextureVector);
+    float d = planeDist/pow(areaTexture, 0.25);
+
+    // Flip texture to match OpenGL conventions
+    interTex = interTex*vec2(1, -1) + vec2(0, 1);
+
+    float lod = log(2048.0*d)/log(3.0);
+    lod = min(lod, 8.0);
+
+    return textureLod(sampler, vec2(0.125, 0.125) + 0.75 * interTex, lod).rgb;
+}
+
+vec3 FetchDiffuseFilteredTexture2(sampler2D texLightFiltered, vec3 p1, vec3 p2, vec3 p3, vec3 p4, vec3 dir)
+{
+    // area light plane basis
+    vec3 V1 = p2 - p1;
+    vec3 V2 = p4 - p1;
+    vec3 planeOrtho = cross(V1, V2);
+    float planeAreaSquared = dot(planeOrtho, planeOrtho);
+
+    Ray ray;
+    ray.origin = vec3(0, 0, 0);
+    ray.dir = dir;
+    vec4 plane = vec4(planeOrtho, -dot(planeOrtho, p1));
+    float planeDist;
+    RayPlaneIntersect(ray, plane, planeDist);
+ 
+    vec3 P = planeDist*ray.dir - p1;
+ 
+    // find tex coords of P
+    float dot_V1_V2 = dot(V1, V2);
+    float inv_dot_V1_V1 = 1.0 / dot(V1, V1);
+    vec3 V2_ = V2 - V1 * dot_V1_V2 * inv_dot_V1_V1;
+    vec2 Puv;
+    Puv.y = dot(V2_, P) / dot(V2_, V2_);
+    Puv.x = dot(V1, P)*inv_dot_V1_V1 - dot_V1_V2*inv_dot_V1_V1*Puv.y;
+
+    // LOD
+    float d = abs(planeDist) / pow(planeAreaSquared, 0.25);
+    
+    // Flip texture to match OpenGL conventions
+    Puv = Puv*vec2(1, -1) + vec2(0, 1);
+    
+    float lod = log(2048.0*d)/log(3.0);
+    lod = min(lod, 8.0);
+
+    return textureLod(texLightFiltered, vec2(0.125, 0.125) + 0.75 * Puv, lod).rgb;
+}
 
 vec3 LTC_Evaluate(
     vec3 N, vec3 V, vec3 P, mat3 Minv, vec3 points[4], bool twoSided)
@@ -281,6 +436,14 @@ vec3 LTC_Evaluate(
 
     // rotate area light in (T1, T2, N) basis
     Minv = mul(Minv, transpose(mat3(T1, T2, N)));
+    
+    mat3 MM = mat3(1);
+    
+    vec3 PP[4];
+    PP[0] = points[0] - P;
+    PP[1] = points[1] - P;
+    PP[2] = points[2] - P;
+    PP[3] = points[3] - P;
 
     // polygon (allocate 5 vertices for clipping)
     vec3 L[5];
@@ -288,6 +451,14 @@ vec3 LTC_Evaluate(
     L[1] = mul(Minv, points[1] - P);
     L[2] = mul(Minv, points[2] - P);
     L[3] = mul(Minv, points[3] - P);
+    
+    vec3 LL[4];
+    LL[0] = L[0];
+    LL[1] = L[1];
+    LL[2] = L[2];
+    LL[3] = L[3];
+    
+    vec3 colorMap = FetchDiffuseFilteredTexture(tex, L[0], L[1], L[2], L[3]);
 
     // integrate
     float sum = 0.0;
@@ -333,26 +504,38 @@ vec3 LTC_Evaluate(
 
         if (n == 0)
             return vec3(0, 0, 0);
+
         // project onto sphere
         L[0] = normalize(L[0]);
         L[1] = normalize(L[1]);
         L[2] = normalize(L[2]);
         L[3] = normalize(L[3]);
         L[4] = normalize(L[4]);
+        
+        vec3 vsum;
 
         // integrate
-        sum += IntegrateEdge(L[0], L[1]);
-        sum += IntegrateEdge(L[1], L[2]);
-        sum += IntegrateEdge(L[2], L[3]);
+        vsum  = IntegrateEdgeVec(L[0], L[1]);
+        vsum += IntegrateEdgeVec(L[1], L[2]);
+        vsum += IntegrateEdgeVec(L[2], L[3]);
         if (n >= 4)
-            sum += IntegrateEdge(L[3], L[4]);
+            vsum += IntegrateEdgeVec(L[3], L[4]);
         if (n == 5)
-            sum += IntegrateEdge(L[4], L[0]);
+            vsum += IntegrateEdgeVec(L[4], L[0]);
+            
+        vec3 dir = normalize(vsum);
+            
+        mat3 M = inverse(Minv);
+        
+        colorMap = FetchDiffuseFilteredTexture2(tex, LL[0], LL[1], LL[2], LL[3], dir);
+        
+        if (debug)
+            colorMap = nearestTexture2(tex, M, Minv, PP[0], PP[1], PP[2], PP[3], dir);
 
-        sum = twoSided ? abs(sum) : max(0.0, sum);
+        sum = twoSided ? abs(vsum.z) : max(0.0, vsum.z);
     }
 
-    vec3 Lo_i = vec3(sum, sum, sum);
+    vec3 Lo_i = sum * colorMap;
 
     return Lo_i;
 }
@@ -453,8 +636,15 @@ void main()
 
     float distToRect;
     if (RayRectIntersect(ray, rect, distToRect))
+    {
         if ((distToRect < distToFloor) || !hitFloor)
-            col = lcol;
+        {
+            vec3 pos = ray.origin + ray.dir*distToRect;
+            vec2 uv  = RectUVs(pos, rect)*0.75 + 0.125;
+            uv = uv*vec2(1, -1) + vec2(0, 1);
+            col = lcol*textureLod(tex, uv, 0.0).rgb;
+        }
+    }
 
     FragColor = vec4(col, 1.0);
 }
