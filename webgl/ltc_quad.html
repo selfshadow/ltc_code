@@ -62,8 +62,6 @@
 
 <script src="js/jquery-ui-1.8.13.custom.min.js" type="text/javascript"></script>
 
-<script src="js/hdrpng.min.js" type="text/javascript"></script>
-
 <script src="../fit/results/ltc.js" type="text/javascript"></script>
 
 
@@ -228,14 +226,16 @@ function SetClampedMIPTextureState()
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
-// From: https://github.com/enkimute/hdrpng.js/blob/master/hdrpng.js
+// See: https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_shared_exponent.txt
 function rgb9_e5ToFloat(buffer, res) {
-    var v, s, l = buffer.byteLength >> 2, res = res || new Float32Array(l*3);
+    var l = buffer.byteLength >> 2, res = res || new Float32Array(l*3);
     for (var i = 0; i < l; i++) {
-        v = buffer[i]; s = Math.pow(2, (v & 31) - 24);
-        res[i*3 + 0] = ((v>>>23)&511)*s;
-        res[i*3 + 1] = ((v>>>14)&511)*s;
-        res[i*3 + 2] = ((v>>> 5)&511)*s;
+        var v = buffer[i];
+        var exponent = ((v >>> 27) & 31) - 24;
+        var scale = Math.pow(2, exponent);
+        res[i*3 + 0] = ((v >>>  0) & 511) * scale;
+        res[i*3 + 1] = ((v >>>  9) & 511) * scale;
+        res[i*3 + 2] = ((v >>> 18) & 511) * scale;
     }
     return res;
 }
@@ -391,18 +391,18 @@ function init() {
     SetClampedTextureState();
 
     color_texture = gl.createTexture();
-    LoadTextureLevel(gl, "images/stained_glass_filtered_0.RGB9_E5.PNG", 0, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_1.RGB9_E5.PNG", 1, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_2.RGB9_E5.PNG", 2, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_3.RGB9_E5.PNG", 3, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_4.RGB9_E5.PNG", 4, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_5.RGB9_E5.PNG", 5, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_6.RGB9_E5.PNG", 6, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_7.RGB9_E5.PNG", 7, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_8.RGB9_E5.PNG", 8, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_9.RGB9_E5.PNG", 9, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_10.RGB9_E5.PNG", 10, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_11.RGB9_E5.PNG", 11, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_0.png", 0, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_1.png", 1, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_2.png", 2, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_3.png", 3, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_4.png", 4, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_5.png", 5, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_6.png", 6, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_7.png", 7, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_8.png", 8, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_9.png", 9, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_10.png", 10, color_texture);
+    LoadTextureLevel(gl, "images/stained_glass_filtered_11.png", 11, color_texture);
 
     // Fetch media and kick off the main program once everything has loaded
     $(function() {
