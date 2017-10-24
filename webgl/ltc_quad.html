@@ -391,18 +391,9 @@ function init() {
     SetClampedTextureState();
 
     color_texture = gl.createTexture();
-    LoadTextureLevel(gl, "images/stained_glass_filtered_0.png", 0, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_1.png", 1, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_2.png", 2, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_3.png", 3, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_4.png", 4, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_5.png", 5, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_6.png", 6, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_7.png", 7, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_8.png", 8, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_9.png", 9, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_10.png", 10, color_texture);
-    LoadTextureLevel(gl, "images/stained_glass_filtered_11.png", 11, color_texture);
+    for (var i = 0; i < 12; i++) {
+        LoadTextureLevel(gl, "images/stained_glass_filtered_" + i + ".png", i, color_texture);
+    }
 
     // Fetch media and kick off the main program once everything has loaded
     $(function() {
