@@ -284,38 +284,7 @@ void ClipQuadToHorizon(inout vec3 L[5], out int n)
         L[4] = L[0];
 }
 
-vec3 FetchDiffuseFilteredTexture(sampler2D texLightFiltered, vec3 p1, vec3 p2, vec3 p3, vec3 p4)
-{
-    // area light plane basis
-    vec3 V1 = p2 - p1;
-    vec3 V2 = p4 - p1;
-    vec3 planeOrtho = cross(V1, V2);
-    float planeAreaSquared = dot(planeOrtho, planeOrtho);
-    float planeDistxPlaneArea = dot(planeOrtho, p1);
-    // orthonormal projection of (0,0,0) in area light space
-    vec3 P = planeDistxPlaneArea * planeOrtho / planeAreaSquared - p1;
-
-    // find tex coords of P
-    float dot_V1_V2 = dot(V1, V2);
-    float inv_dot_V1_V1 = 1.0 / dot(V1, V1);
-    vec3 V2_ = V2 - V1 * dot_V1_V2 * inv_dot_V1_V1;
-    vec2 Puv;
-    Puv.y = dot(V2_, P) / dot(V2_, V2_);
-    Puv.x = dot(V1, P)*inv_dot_V1_V1 - dot_V1_V2*inv_dot_V1_V1*Puv.y;
-
-    // LOD
-    float d = abs(planeDistxPlaneArea) / pow(planeAreaSquared, 0.75);
-    
-    // Flip texture to match OpenGL conventions
-    Puv = Puv*vec2(1, -1) + vec2(0, 1);
-    
-    float lod = log(2048.0*d)/log(3.0);
-    lod = min(lod, 8.0);
-
-    return textureLod(texLightFiltered, vec2(0.125, 0.125) + 0.75 * Puv, lod).rgb;
-}
-
-vec3 FetchDiffuseFilteredTexture2(sampler2D texLightFiltered, vec3 p1, vec3 p2, vec3 p3, vec3 p4, vec3 dir)
+vec3 FetchDiffuseFilteredTexture(sampler2D texLightFiltered, vec3 p1, vec3 p2, vec3 p3, vec3 p4, vec3 dir)
 {
     // area light plane basis
     vec3 V1 = p2 - p1;
@@ -377,11 +346,10 @@ vec3 LTC_Evaluate(
     LL[1] = L[1];
     LL[2] = L[2];
     LL[3] = L[3];
-    
-    vec3 colorMap = FetchDiffuseFilteredTexture(tex, L[0], L[1], L[2], L[3]);
 
     // integrate
     float sum = 0.0;
+    vec3 colorMap;
 
     if (clipless)
     {
@@ -416,6 +384,9 @@ vec3 LTC_Evaluate(
 
         if (behind && !twoSided)
             sum = 0.0;
+
+        vec3 fetchDir = vsum/len;
+        colorMap = FetchDiffuseFilteredTexture(tex, LL[0], LL[1], LL[2], LL[3], fetchDir);
     }
     else
     {
@@ -442,14 +413,11 @@ vec3 LTC_Evaluate(
             vsum += IntegrateEdgeVec(L[3], L[4]);
         if (n == 5)
             vsum += IntegrateEdgeVec(L[4], L[0]);
-            
-        vec3 dir = normalize(vsum);
-            
-        mat3 M = inverse(Minv);
-        
-        colorMap = FetchDiffuseFilteredTexture2(tex, LL[0], LL[1], LL[2], LL[3], dir);
 
         sum = twoSided ? abs(vsum.z) : max(0.0, vsum.z);
+
+        vec3 fetchDir = normalize(vsum);
+        colorMap = FetchDiffuseFilteredTexture(tex, LL[0], LL[1], LL[2], LL[3], fetchDir);
     }
 
     vec3 Lo_i = sum * colorMap;
