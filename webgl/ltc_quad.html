@@ -63,7 +63,6 @@
 <script src="js/jquery-ui-1.8.13.custom.min.js" type="text/javascript"></script>
 
 <script src="../fit/results/ltc.js" type="text/javascript"></script>
-<script src="js/array.js" type="text/javascript"></script>
 
 <script>
 var g_vshader = null;
@@ -240,7 +239,8 @@ function rgb9_e5ToFloat(buffer, res) {
     return res;
 }
 
-var g_levels_loaded = 0;
+var g_array_slices_to_load = 0;
+var g_array_data = null;
 
 function LoadTextureLevel(gl, src, level, dest) {
     var image = new Image();
@@ -265,10 +265,22 @@ function LoadTextureLevel(gl, src, level, dest) {
         var dataU32 = new Uint32Array(res.buffer);
         var dataF32 = rgb9_e5ToFloat(dataU32);
 
-        g_levels_loaded++;
+        g_array_data.set(dataF32, 512 * 512 * 3 * level);
 
-        gl.bindTexture(gl.TEXTURE_2D, dest);
-        gl.texImage2D(gl.TEXTURE_2D, level, gl.RGB9_E5, x, y, 0, gl.RGB, gl.FLOAT, dataF32);
+        g_array_slices_to_load--;
+
+        if (g_array_slices_to_load == 0)
+        {
+            color_texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D_ARRAY, color_texture);
+            gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.R11F_G11F_B10F, 512, 512, 10, 0, gl.RGB, gl.FLOAT, g_array_data);
+            gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+
+            gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S,     gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T,     gl.CLAMP_TO_EDGE);
+        }
     }
 
     image.src = src;
@@ -390,18 +402,13 @@ function init() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 64, 64, 0, gl.RGBA, gl.FLOAT, new Float32Array(g_ltc_2));
     SetClampedTextureState();
 
-    color_texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D_ARRAY, color_texture);
-    gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.R11F_G11F_B10F, 512, 512, 10, 0, gl.RGB, gl.FLOAT, new Float32Array(g_texture_array));
-    gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+    // TODO: remove hardcoding
+    g_array_slices_to_load = 8;
+    g_array_data = new Float32Array(512 * 512 * 3 * 10);
 
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S,     gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T,     gl.CLAMP_TO_EDGE);
-    //for (var i = 0; i < 12; i++) {
-    //    LoadTextureLevel(gl, "images/vista_filtered_" + i + ".png", i, color_texture);
-    //}
+    for (var i = 0; i < g_array_slices_to_load; i++) {
+        LoadTextureLevel(gl, "images/stained_glass_" + i + ".png", i, color_texture);
+    }
 
     // Fetch media and kick off the main program once everything has loaded
     $(function() {

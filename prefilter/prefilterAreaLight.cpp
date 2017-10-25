@@ -214,44 +214,38 @@ int main(int argc, char* argv[])
 
     int offset = 0;
     CImg<float> imageInput(x, y, 1, 3);
-    for (int j = 0; j < imageInput.height(); ++j)
-    for (int i = 0; i < imageInput.width();  ++i)
+    for (int j = 0; j < y; ++j)
+    for (int i = 0; i < x; ++i)
     {
         for (int k = 0; k < imageInput.spectrum(); ++k)
             imageInput(i, j, 0, k) = data[offset++];
     }
 
     // filtered levels
-    unsigned int Nlevels;
-    for (Nlevels = 1; (imageInput.width() >> Nlevels) > 0; ++Nlevels);
+    //unsigned int Nlevels;
+    //for (Nlevels = 1; (imageInput.width() >> Nlevels) > 0; ++Nlevels);
+
+    // Beyond 8 levels, the result is ~= a constant colour
+    // so pretend we have 12 levels, but truncate at 8
+    const unsigned int Nlevels = 12;
+    const unsigned int maxLevels = 8;
 
     uint32_t* dataOut = new uint32_t[x * y];
 
-    int hdrSize = x * y * 3 * Nlevels;
-    float* hdrOut = new float[hdrSize];
-
-    int hdrOffset = 0;
-
     // borders
-    for (unsigned int level = 0; level < Nlevels; ++level)
+    for (unsigned int level = 0; level < maxLevels; ++level)
     {
         stringstream filenameOutput(stringstream::in | stringstream::out);
-        filenameOutput << filename << "_filtered_" << level << ".png";
+        filenameOutput << filename << "_" << level << ".png";
 
         cout << "processing file " << filenameOutput.str() << endl;
-        unsigned int width = imageInput.width();// >> level;
-        unsigned int height = imageInput.height();// >> level;
 
-        if (width <= 0 || height <= 0)
-            break;
-
-        CImg<float> imageOutput(width, height, 1, 4);
-
+        CImg<float> imageOutput(x, y, 1, 4);
         filter(imageInput, imageOutput, level, Nlevels);
 
         offset = 0;
-        for (int j = 0; j < imageOutput.height(); ++j)
-        for (int i = 0; i < imageOutput.width();  ++i)
+        for (int j = 0; j < y; ++j)
+        for (int i = 0; i < x; ++i)
         {
             float r = imageOutput(i, j, 0, 0);
             float g = imageOutput(i, j, 0, 1);
@@ -259,36 +253,12 @@ int main(int argc, char* argv[])
 
             rgb9e5 value = float3_to_rgb9e5(r, g, b);
             dataOut[offset++] = value.raw;
-
-            hdrOut[hdrOffset++] = r;
-            hdrOut[hdrOffset++] = g;
-            hdrOut[hdrOffset++] = b;
         }
 
-        stbi_write_png(filenameOutput.str().c_str(), width, height, 4, dataOut, 0);
-
-        //stringstream hdrFname(stringstream::in | stringstream::out);
-        //hdrFname << "mip" << level << ".hdr";
-        //stbi_write_hdr(hdrFname.str().c_str(), width, height, 3, hdrOut);
+        stbi_write_png(filenameOutput.str().c_str(), x, y, 4, dataOut, 0);
     }
-
-    ofstream file("array.js");
-
-    file << "var g_texture_array = [" << endl;
-
-    data = hdrOut;
-    for (int i = 0; i < hdrSize/16; i++)
-    {
-        for (int j = 0; j < 16; j++)
-          file << *data++ << ", ";
-        file << endl;
-    }
-
-    file << "];" << endl;
-    file.close();
 
     delete[] dataOut;
-    delete[] hdrOut;
 
     return 0;
 }
