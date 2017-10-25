@@ -29,12 +29,30 @@ void filter(CImg<float>& imageInput, CImg<float>& imageOutput, const int level, 
     cout << "distance to texture plane = " << dist << endl;
     cout << "filterStd = " << filterStd << endl << endl;
 
-    CImg<float> tmp = imageInput;
+    CImg<float> tmp(imageInput.width(), imageInput.height(), 1, 4);
+
+    for (int j = 0; j < imageInput.height(); ++j)
+    for (int i = 0; i < imageInput.width();  ++i)
+    {
+        tmp(i, j, 0, 0) = imageInput(i, j, 0, 0);
+        tmp(i, j, 0, 1) = imageInput(i, j, 0, 1);
+        tmp(i, j, 0, 2) = imageInput(i, j, 0, 2);
+        tmp(i, j, 0, 3) = 1.0f;
+    }
+
     tmp.blur(filterStd, filterStd, filterStd, false);
+
+    // renormalise based on alpha
+    for (int j = 0; j < imageInput.height(); ++j)
+    for (int i = 0; i < imageInput.width();  ++i)
+    {
+        float alpha = tmp(i, j, 0, 3);
+        for (int k = 0; k < tmp.spectrum(); ++k)
+          tmp(i, j, 0, k) /= alpha;
+    }
 
     // rescale image
     imageOutput = tmp.resize(imageOutput, 5); // 5 = cubic interpolation
-    return;
 }
 
 // Adapted from https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_shared_exponent.txt
@@ -224,7 +242,7 @@ int main(int argc, char* argv[])
         if (width <= 0 || height <= 0)
             break;
 
-        CImg<float> imageOutput(width, height, 1, 3);
+        CImg<float> imageOutput(width, height, 1, 4);
 
         filter(imageInput, imageOutput, level, Nlevels);
 
