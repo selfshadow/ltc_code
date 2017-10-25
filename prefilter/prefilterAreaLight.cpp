@@ -209,10 +209,12 @@ int main(int argc, char* argv[])
 
     uint32_t* dataOut = new uint32_t[x * y];
 
+    float* hdrOut = new float[x * y * 3];
+
     // borders
     for (unsigned int level = 0; level < Nlevels; ++level)
     {
-        stringstream filenameOutput (stringstream::in | stringstream::out);
+        stringstream filenameOutput(stringstream::in | stringstream::out);
         filenameOutput << filename << "_filtered_" << level << ".png";
 
         cout << "processing file " << filenameOutput.str() << endl;
@@ -227,21 +229,31 @@ int main(int argc, char* argv[])
         filter(imageInput, imageOutput, level, Nlevels);
 
         offset = 0;
+        int hdrOffset = 0;
         for (int j = 0; j < imageOutput.height(); ++j)
         for (int i = 0; i < imageOutput.width();  ++i)
         {
-            rgb9e5 value = float3_to_rgb9e5(
-                imageOutput(i, j, 0, 0),
-                imageOutput(i, j, 0, 1),
-                imageOutput(i, j, 0, 2));
+            float r = imageOutput(i, j, 0, 0);
+            float g = imageOutput(i, j, 0, 1);
+            float b = imageOutput(i, j, 0, 2);
 
+            rgb9e5 value = float3_to_rgb9e5(r, g, b);
             dataOut[offset++] = value.raw;
+
+            hdrOut[hdrOffset++] = r;
+            hdrOut[hdrOffset++] = g;
+            hdrOut[hdrOffset++] = b;
         }
 
         stbi_write_png(filenameOutput.str().c_str(), width, height, 4, dataOut, 0);
+
+        stringstream hdrFname(stringstream::in | stringstream::out);
+        hdrFname << "mip" << level << ".hdr";
+        stbi_write_hdr(hdrFname.str().c_str(), width, height, 3, hdrOut);
     }
 
     delete[] dataOut;
+    delete[] hdrOut;
 
     return 0;
 }
