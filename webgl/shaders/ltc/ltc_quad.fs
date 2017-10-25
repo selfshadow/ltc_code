@@ -547,6 +547,8 @@ void main()
             vec2 uv  = RectUVs(pos, rect);
             uv = uv*vec2(1, -1) + vec2(0, 1);
             col = lcol*texture(tex, vec3(uv, 0.0)).rgb;
+            if (!textured)
+                col = lcol;
         }
     }
 
