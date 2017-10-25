@@ -227,7 +227,10 @@ int main(int argc, char* argv[])
 
     uint32_t* dataOut = new uint32_t[x * y];
 
-    float* hdrOut = new float[x * y * 3];
+    int hdrSize = x * y * 3 * Nlevels;
+    float* hdrOut = new float[hdrSize];
+
+    int hdrOffset = 0;
 
     // borders
     for (unsigned int level = 0; level < Nlevels; ++level)
@@ -236,8 +239,8 @@ int main(int argc, char* argv[])
         filenameOutput << filename << "_filtered_" << level << ".png";
 
         cout << "processing file " << filenameOutput.str() << endl;
-        unsigned int width = imageInput.width() >> level;
-        unsigned int height = imageInput.height() >> level;
+        unsigned int width = imageInput.width();// >> level;
+        unsigned int height = imageInput.height();// >> level;
 
         if (width <= 0 || height <= 0)
             break;
@@ -247,7 +250,6 @@ int main(int argc, char* argv[])
         filter(imageInput, imageOutput, level, Nlevels);
 
         offset = 0;
-        int hdrOffset = 0;
         for (int j = 0; j < imageOutput.height(); ++j)
         for (int i = 0; i < imageOutput.width();  ++i)
         {
@@ -265,10 +267,25 @@ int main(int argc, char* argv[])
 
         stbi_write_png(filenameOutput.str().c_str(), width, height, 4, dataOut, 0);
 
-        stringstream hdrFname(stringstream::in | stringstream::out);
-        hdrFname << "mip" << level << ".hdr";
-        stbi_write_hdr(hdrFname.str().c_str(), width, height, 3, hdrOut);
+        //stringstream hdrFname(stringstream::in | stringstream::out);
+        //hdrFname << "mip" << level << ".hdr";
+        //stbi_write_hdr(hdrFname.str().c_str(), width, height, 3, hdrOut);
     }
+
+    ofstream file("array.js");
+
+    file << "var g_texture_array = [" << endl;
+
+    data = hdrOut;
+    for (int i = 0; i < hdrSize/16; i++)
+    {
+        for (int j = 0; j < 16; j++)
+          file << *data++ << ", ";
+        file << endl;
+    }
+
+    file << "];" << endl;
+    file.close();
 
     delete[] dataOut;
     delete[] hdrOut;

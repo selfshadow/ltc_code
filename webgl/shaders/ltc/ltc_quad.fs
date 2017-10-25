@@ -8,6 +8,7 @@
 // bind rotz        {label:"Rotation Z", default: 0, min:0, max:1, step:0.001}
 // bind twoSided    {label:"Two-sided", default:false}
 // bind clipless    {label:"Clipless Approximation", default:false}
+// bind textured    {label:"Textured", default:false}
 
 uniform float roughness;
 uniform vec3  dcolor;
@@ -21,11 +22,12 @@ uniform float rotz;
 
 uniform bool twoSided;
 uniform bool clipless;
+uniform bool textured;
 
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
 
-uniform sampler2D tex;
+uniform sampler2DArray tex;
 
 uniform mat4  view;
 uniform vec2  resolution;
@@ -284,8 +286,18 @@ void ClipQuadToHorizon(inout vec3 L[5], out int n)
         L[4] = L[0];
 }
 
-vec3 FetchDiffuseFilteredTexture(sampler2D texLightFiltered, vec3 p1, vec3 p2, vec3 p3, vec3 p4, vec3 dir)
+vec3 FetchColorTexture(vec2 uv, float lod)
 {
+    if (!textured)
+        return vec3(1, 1, 1);
+    return texture(tex, vec3(uv, lod)).rgb;
+}
+
+vec3 FetchDiffuseFilteredTexture(vec3 p1, vec3 p2, vec3 p3, vec3 p4, vec3 dir)
+{
+    if (textured == false)
+        return vec3(1, 1, 1);
+    
     // area light plane basis
     vec3 V1 = p2 - p1;
     vec3 V2 = p4 - p1;
@@ -317,8 +329,15 @@ vec3 FetchDiffuseFilteredTexture(sampler2D texLightFiltered, vec3 p1, vec3 p2, v
     
     float lod = log(2048.0*d)/log(3.0);
     lod = min(lod, 8.0);
+    
+    float lodA = floor(lod);
+    float lodB = ceil(lod);
+    float t = lod - lodA;
+    
+    vec3 a = FetchColorTexture(Puv, lodA);
+    vec3 b = FetchColorTexture(Puv, lodB);
 
-    return textureLod(texLightFiltered, Puv, lod).rgb;
+    return mix(a, b, t);
 }
 
 vec3 LTC_Evaluate(
@@ -386,7 +405,7 @@ vec3 LTC_Evaluate(
             sum = 0.0;
 
         vec3 fetchDir = vsum/len;
-        colorMap = FetchDiffuseFilteredTexture(tex, LL[0], LL[1], LL[2], LL[3], fetchDir);
+        colorMap = FetchDiffuseFilteredTexture(LL[0], LL[1], LL[2], LL[3], fetchDir);
     }
     else
     {
@@ -417,7 +436,7 @@ vec3 LTC_Evaluate(
         sum = twoSided ? abs(vsum.z) : max(0.0, vsum.z);
 
         vec3 fetchDir = normalize(vsum);
-        colorMap = FetchDiffuseFilteredTexture(tex, LL[0], LL[1], LL[2], LL[3], fetchDir);
+        colorMap = FetchDiffuseFilteredTexture(LL[0], LL[1], LL[2], LL[3], fetchDir);
     }
 
     vec3 Lo_i = sum * colorMap;
@@ -527,7 +546,7 @@ void main()
             vec3 pos = ray.origin + ray.dir*distToRect;
             vec2 uv  = RectUVs(pos, rect);
             uv = uv*vec2(1, -1) + vec2(0, 1);
-            col = lcol*textureLod(tex, uv, 0.0).rgb;
+            col = lcol*texture(tex, vec3(uv, 0.0)).rgb;
         }
     }
 

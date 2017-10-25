@@ -63,7 +63,7 @@
 <script src="js/jquery-ui-1.8.13.custom.min.js" type="text/javascript"></script>
 
 <script src="../fit/results/ltc.js" type="text/javascript"></script>
-
+<script src="js/array.js" type="text/javascript"></script>
 
 <script>
 var g_vshader = null;
@@ -391,9 +391,17 @@ function init() {
     SetClampedTextureState();
 
     color_texture = gl.createTexture();
-    for (var i = 0; i < 12; i++) {
-        LoadTextureLevel(gl, "images/stained_glass_filtered_" + i + ".png", i, color_texture);
-    }
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, color_texture);
+    gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.R11F_G11F_B10F, 512, 512, 10, 0, gl.RGB, gl.FLOAT, new Float32Array(g_texture_array));
+    gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S,     gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T,     gl.CLAMP_TO_EDGE);
+    //for (var i = 0; i < 12; i++) {
+    //    LoadTextureLevel(gl, "images/vista_filtered_" + i + ".png", i, color_texture);
+    //}
 
     // Fetch media and kick off the main program once everything has loaded
     $(function() {
@@ -449,7 +457,7 @@ function glUniformTypeToString(type) {
 
 
 function createProgram(vertex, fragment) {
-    var header = "#version 300 es\nprecision highp float;\n#line 0\n";
+    var header = "#version 300 es\nprecision highp float;\nprecision highp sampler2DArray;\n#line 0\n";
     vertex   = header + vertex;
     fragment = header + fragment;
 
@@ -718,13 +726,8 @@ function draw() {
     gl.uniform1i(gl.getUniformLocation(currentProgram, "ltc_2"), 1);
 
     gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, color_texture);
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, color_texture);
     gl.uniform1i(gl.getUniformLocation(currentProgram, "tex"), 2);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, g_levels_loaded == 12 ? gl.LINEAR_MIPMAP_LINEAR : gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,     gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,     gl.CLAMP_TO_EDGE);
-    //SetClampedMIPTextureState();
 
     checkGLError();
 
