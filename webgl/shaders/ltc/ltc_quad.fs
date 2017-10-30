@@ -328,7 +328,7 @@ vec3 FetchDiffuseFilteredTexture(vec3 p1, vec3 p2, vec3 p3, vec3 p4, vec3 dir)
     Puv = Puv*vec2(1, -1) + vec2(0, 1);
     
     float lod = log(2048.0*d)/log(3.0);
-    lod = min(lod, 8.0);
+    lod = min(lod, 7.0);
     
     float lodA = floor(lod);
     float lodB = ceil(lod);
