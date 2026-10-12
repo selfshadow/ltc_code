@@ -205,15 +205,14 @@ Disk InitDisk(vec3 center, vec3 dirx, vec3 diry, float halfx, float halfy)
     return disk;
 }
 
-void InitDiskPoints(Disk disk, out vec3 points[4])
+void InitDiskPoints(Disk disk, out vec3 points[3])
 {
     vec3 ex = disk.halfx*disk.dirx;
     vec3 ey = disk.halfy*disk.diry;
 
-    points[0] = disk.center - ex - ey;
-    points[1] = disk.center + ex - ey;
-    points[2] = disk.center + ex + ey;
-    points[3] = disk.center - ex + ey;
+    points[0] = disk.center;
+    points[1] = disk.center + ex;
+    points[2] = disk.center + ey;
 }
 
 // Misc.
@@ -242,8 +241,7 @@ vec3 SolveCubic(vec4 Coefficient)
     );
 
     float Discriminant = dot(vec2(4.0*Delta.x, -Delta.y), Delta.zy);
-
-    vec3 RootsA, RootsD;
+    float SqrtDiscriminant = sqrt(max(0.0, Discriminant));
 
     vec2 xlc, xsc;
 
@@ -254,7 +252,7 @@ vec3 SolveCubic(vec4 Coefficient)
         float D_a = -2.0*B*Delta.x + Delta.y;
 
         // Take the cubic root of a normalized complex number
-        float Theta = atan(sqrt(Discriminant), -D_a)/3.0;
+        float Theta = atan(SqrtDiscriminant, -D_a)/3.0;
 
         float x_1a = 2.0*sqrt(-C_a)*cos(Theta);
         float x_3a = 2.0*sqrt(-C_a)*cos(Theta + (2.0/3.0)*pi);
@@ -275,7 +273,7 @@ vec3 SolveCubic(vec4 Coefficient)
         float D_d = -D*Delta.y + 2.0*C*Delta.z;
 
         // Take the cubic root of a normalized complex number
-        float Theta = atan(D*sqrt(Discriminant), -D_d)/3.0;
+        float Theta = atan(D*SqrtDiscriminant, -D_d)/3.0;
 
         float x_1d = 2.0*sqrt(-C_d)*cos(Theta);
         float x_3d = 2.0*sqrt(-C_d)*cos(Theta + (2.0/3.0)*pi);
@@ -309,32 +307,20 @@ vec3 SolveCubic(vec4 Coefficient)
 ///////////////////////////////
 
 vec3 LTC_Evaluate(
-    vec3 N, vec3 V, vec3 P, mat3 Minv, vec3 points[4], bool twoSided, float u1, float u2)
+    vec3 N, vec3 V, vec3 P, mat3 Minv, vec3 points[3], bool twoSided, float u1, float u2)
 {
     // construct orthonormal basis around N
     vec3 T1, T2;
     T1 = normalize(V - N*dot(V, N));
     T2 = cross(N, T1);
 
-    // rotate area light in (T1, T2, N) basis
+    // rotate disk light points into LTC basis
     mat3 R = transpose(mat3(T1, T2, N));
+    mat3 T = Minv * transpose(mat3(T1, T2, N));
 
-    // polygon (allocate 5 vertices for clipping)
-    vec3 L_[3];
-    L_[0] = mul(R, points[0] - P);
-    L_[1] = mul(R, points[1] - P);
-    L_[2] = mul(R, points[2] - P);
-
-    vec3 Lo_i = vec3(0);
-
-    // init ellipse
-    vec3 C  = 0.5 * (L_[0] + L_[2]);
-    vec3 V1 = 0.5 * (L_[1] - L_[2]);
-    vec3 V2 = 0.5 * (L_[1] - L_[0]);
-
-    C  = Minv * C;
-    V1 = Minv * V1;
-    V2 = Minv * V2;
+    vec3 C = T * (points[0] - P);
+    vec3 V1 = T * (points[1] - P) - C;
+    vec3 V2 = T * (points[2] - P) - C;
 
     if(!twoSided && dot(cross(V1, V2), C) < 0.0)
         return vec3(0.0);
@@ -494,9 +480,9 @@ vec3 LTC_Evaluate(
         }
     }
 
-    Lo_i = vec3(spec, spec, spec);
+    vec3 Lo_i = vec3(spec, spec, spec);
 
-    return vec3(Lo_i);
+    return Lo_i;
 }
 
 // Misc. helpers
@@ -530,8 +516,8 @@ void main()
         0.5*height
     );
 
-    vec3 points[4];
-    InitDiskPoints(disk, points);
+    vec3 diskPoints[3];
+    InitDiskPoints(disk, diskPoints);
 
     vec4 floorPlane = vec4(0, 1, 0, 0);
 
@@ -577,11 +563,11 @@ void main()
             vec3(t1.z, 0, t1.w)
         );
 
-        vec3 spec = LTC_Evaluate(N, V, pos, Minv, points, twoSided, u1, u2);
+        vec3 spec = LTC_Evaluate(N, V, pos, Minv, diskPoints, twoSided, u1, u2);
         // BRDF shadowing and Fresnel
         spec *= scol*t2.x + (1.0 - scol)*t2.y;
 
-        vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points, twoSided, u1, u2);
+        vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), diskPoints, twoSided, u1, u2);
 
         col = lcol*(spec + dcol*diff);
     }
